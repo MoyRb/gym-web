@@ -19,10 +19,11 @@ export interface UserProfile {
 }
 
 export interface ImcResult {
-  value: number
+  value: number | null
   categoria: string
   descripcion: string
   color: string
+  showProgress: boolean
 }
 
 export interface Ejercicio {

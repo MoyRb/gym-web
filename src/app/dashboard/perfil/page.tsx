@@ -49,6 +49,7 @@ export default function PerfilPage() {
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState<UserProfile>(defaultProfile)
+  const [fieldErrors, setFieldErrors] = useState<{ peso_kg?: string; altura_cm?: string }>({})
 
   useEffect(() => {
     void (async () => {
@@ -63,9 +64,29 @@ export default function PerfilPage() {
     setForm((f) => ({ ...f, [key]: value }))
   }
 
+  function validatePhysicalFields() {
+    const nextErrors: { peso_kg?: string; altura_cm?: string } = {}
+
+    if (!Number.isFinite(form.peso_kg) || form.peso_kg <= 0) {
+      nextErrors.peso_kg = "Ingresa un peso válido mayor a 0 kg."
+    }
+
+    if (!Number.isFinite(form.altura_cm) || form.altura_cm <= 0) {
+      nextErrors.altura_cm = "Ingresa una altura válida mayor a 0 cm."
+    }
+
+    setFieldErrors(nextErrors)
+    return Object.keys(nextErrors).length === 0
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+
+    if (!validatePhysicalFields()) {
+      setError("Corrige los campos marcados para continuar.")
+      return
+    }
 
     try {
       await saveProfile(form)
@@ -79,6 +100,8 @@ export default function PerfilPage() {
 
   function resetForm() {
     setForm(profile ?? defaultProfile)
+    setFieldErrors({})
+    setError(null)
   }
 
   if (!isFetched) {
@@ -138,12 +161,41 @@ export default function PerfilPage() {
                 <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="peso">Peso (kg)</Label>
-                    <Input id="peso" type="number" min={30} max={300} step={0.1} value={form.peso_kg} onChange={(e) => set("peso_kg", Number(e.target.value))} className="h-10" />
+                    <Input
+                      id="peso"
+                      type="number"
+                      min={30}
+                      max={300}
+                      step={0.1}
+                      value={form.peso_kg}
+                      onChange={(e) => {
+                        set("peso_kg", Number(e.target.value))
+                        if (fieldErrors.peso_kg) {
+                          setFieldErrors((prev) => ({ ...prev, peso_kg: undefined }))
+                        }
+                      }}
+                      className="h-10"
+                    />
+                    {fieldErrors.peso_kg && <p className="text-xs text-destructive">{fieldErrors.peso_kg}</p>}
                   </div>
 
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="altura">Altura (cm)</Label>
-                    <Input id="altura" type="number" min={100} max={250} value={form.altura_cm} onChange={(e) => set("altura_cm", Number(e.target.value))} className="h-10" />
+                    <Input
+                      id="altura"
+                      type="number"
+                      min={100}
+                      max={250}
+                      value={form.altura_cm}
+                      onChange={(e) => {
+                        set("altura_cm", Number(e.target.value))
+                        if (fieldErrors.altura_cm) {
+                          setFieldErrors((prev) => ({ ...prev, altura_cm: undefined }))
+                        }
+                      }}
+                      className="h-10"
+                    />
+                    {fieldErrors.altura_cm && <p className="text-xs text-destructive">{fieldErrors.altura_cm}</p>}
                   </div>
                 </CardContent>
               </Card>
