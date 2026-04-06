@@ -11,20 +11,21 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { GymLogo } from "@/components/layout/GymLogo"
 import { analytics } from "@/utils/analytics"
 import { createClient } from "@/lib/supabase/client"
+import { usernameToInternalEmail, validateUsername } from "@/lib/auth/username"
 
 export default function LoginPage() {
   const router = useRouter()
 
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [email, setEmail] = useState("")
+  const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
-  const [errors, setErrors] = useState<{ email?: string; password?: string; form?: string }>({})
+  const [errors, setErrors] = useState<{ username?: string; password?: string; form?: string }>({})
 
   function validate() {
     const errs: typeof errors = {}
-    if (!email) errs.email = "El email es obligatorio"
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errs.email = "Email inválido"
+    const usernameError = validateUsername(username)
+    if (usernameError) errs.username = usernameError
     if (!password) errs.password = "La contraseña es obligatoria"
     else if (password.length < 6) errs.password = "Mínimo 6 caracteres"
     return errs
@@ -42,7 +43,10 @@ export default function LoginPage() {
     setIsLoading(true)
 
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { error } = await supabase.auth.signInWithPassword({
+      email: usernameToInternalEmail(username),
+      password,
+    })
 
     if (error) {
       setErrors({ form: "No pudimos iniciar sesión. Verifica tus credenciales." })
@@ -50,7 +54,7 @@ export default function LoginPage() {
       return
     }
 
-    await analytics.login()
+    await analytics.login("username")
     const nextPath = new URL(window.location.href).searchParams.get("next") || "/dashboard"
     router.replace(nextPath)
     router.refresh()
@@ -85,9 +89,9 @@ export default function LoginPage() {
             <CardContent>
               <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" placeholder="tu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} aria-invalid={!!errors.email} className="h-10" />
-                  {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
+                  <Label htmlFor="username">Nombre de usuario</Label>
+                  <Input id="username" type="text" placeholder="ej: juan.perez" value={username} onChange={(e) => setUsername(e.target.value)} aria-invalid={!!errors.username} className="h-10" />
+                  {errors.username && <p className="text-xs text-destructive">{errors.username}</p>}
                 </div>
 
                 <div className="flex flex-col gap-1.5">

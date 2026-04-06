@@ -8,6 +8,7 @@ export interface Database {
       profiles: {
         Row: {
           id: string
+          username: string
           full_name: string | null
           age: number | null
           sex: string | null
@@ -24,6 +25,7 @@ export interface Database {
         }
         Insert: {
           id: string
+          username?: string
           full_name?: string | null
           age?: number | null
           sex?: string | null
@@ -39,6 +41,7 @@ export interface Database {
           updated_at?: string
         }
         Update: {
+          username?: string
           full_name?: string | null
           age?: number | null
           sex?: string | null

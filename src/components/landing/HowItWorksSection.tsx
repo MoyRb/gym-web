@@ -5,7 +5,7 @@ const steps = [
     number: "01",
     icon: UserPlus,
     title: "Crea tu cuenta",
-    description: "Regístrate con tu email. Solo necesitas unos minutos y toma solo unos minutos.",
+    description: "Regístrate con tu nombre de usuario. Solo necesitas unos minutos para empezar.",
   },
   {
     number: "02",

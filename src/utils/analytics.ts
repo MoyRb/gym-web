@@ -29,8 +29,8 @@ async function trackEvent(eventType: string, metadata?: Record<string, unknown>)
 }
 
 export const analytics = {
-  login: (method = "email") => trackEvent(analyticsEvents.login, { method }),
-  register: (method = "email") => trackEvent(analyticsEvents.register, { method }),
+  login: (method = "username") => trackEvent(analyticsEvents.login, { method }),
+  register: (method = "username") => trackEvent(analyticsEvents.register, { method }),
   profileCompleted: (objetivo: string, experiencia: string) =>
     trackEvent(analyticsEvents.profileCompleted, { objetivo, experiencia }),
   routineViewed: (rutinaId: string, rutinaTitle: string) =>
