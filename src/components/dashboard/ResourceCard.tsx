@@ -37,9 +37,9 @@ export function ResourceCard({ recurso, onDownload }: ResourceCardProps) {
           <Badge variant="secondary" className={cn("border border-current/20 bg-transparent text-xs", config.className)}>
             {config.label}
           </Badge>
-          <span className="text-xs text-muted-foreground">{recurso.paginas} págs</span>
-          <span className="text-xs text-muted-foreground">·</span>
-          <span className="text-xs text-muted-foreground">{recurso.tamaño}</span>
+          {recurso.paginas ? <span className="text-xs text-muted-foreground">{recurso.paginas} págs</span> : null}
+          {recurso.paginas && recurso.tamaño ? <span className="text-xs text-muted-foreground">·</span> : null}
+          {recurso.tamaño ? <span className="text-xs text-muted-foreground">{recurso.tamaño}</span> : null}
         </div>
 
         <a

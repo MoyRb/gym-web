@@ -3,19 +3,23 @@
 import Link from "next/link"
 import { Eye, EyeOff, ArrowLeft } from "lucide-react"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { GymLogo } from "@/components/layout/GymLogo"
 import { analytics } from "@/utils/analytics"
+import { createClient } from "@/lib/supabase/client"
 
 export default function LoginPage() {
+  const router = useRouter()
+
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({})
+  const [errors, setErrors] = useState<{ email?: string; password?: string; form?: string }>({})
 
   function validate() {
     const errs: typeof errors = {}
@@ -36,11 +40,20 @@ export default function LoginPage() {
 
     setErrors({})
     setIsLoading(true)
-    // TODO: await supabase.auth.signInWithPassword({ email, password })
-    analytics.login()
-    await new Promise((r) => setTimeout(r, 1000))
-    setIsLoading(false)
-    window.location.href = "/dashboard"
+
+    const supabase = createClient()
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+
+    if (error) {
+      setErrors({ form: "No pudimos iniciar sesión. Verifica tus credenciales." })
+      setIsLoading(false)
+      return
+    }
+
+    await analytics.login()
+    const nextPath = new URL(window.location.href).searchParams.get("next") || "/dashboard"
+    router.replace(nextPath)
+    router.refresh()
   }
 
   return (
@@ -87,6 +100,8 @@ export default function LoginPage() {
                   </div>
                   {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
                 </div>
+
+                {errors.form && <p className="text-xs text-destructive">{errors.form}</p>}
 
                 <Button type="submit" className="mt-2 h-10" disabled={isLoading}>
                   {isLoading ? "Iniciando sesión..." : "Acceder"}

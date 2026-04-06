@@ -1,4 +1,5 @@
-import type { AnalyticsEvent } from "@/types"
+import { createClient } from "@/lib/supabase/client"
+import type { Json } from "@/types/database"
 
 export const analyticsEvents = {
   register: "register",
@@ -8,16 +9,22 @@ export const analyticsEvents = {
   pdfDownloaded: "pdf_downloaded",
 } as const
 
-function trackEvent(event: string, properties?: Record<string, unknown>): void {
-  const payload: AnalyticsEvent = {
-    event,
-    properties,
-    timestamp: new Date().toISOString(),
-  }
+async function trackEvent(eventType: string, metadata?: Record<string, unknown>): Promise<void> {
+  try {
+    const supabase = createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
-  // TODO: conectar con tabla `events` en Supabase
-  if (process.env.NODE_ENV === "development") {
-    console.log("[Analytics]", payload)
+    await supabase.from("analytics_events").insert({
+      user_id: user?.id ?? null,
+      event_type: eventType,
+      metadata: (metadata ?? {}) as Json,
+    })
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.error("[Analytics error]", error)
+    }
   }
 }
 
@@ -28,6 +35,6 @@ export const analytics = {
     trackEvent(analyticsEvents.profileCompleted, { objetivo, experiencia }),
   routineViewed: (rutinaId: string, rutinaTitle: string) =>
     trackEvent(analyticsEvents.routineViewed, { rutinaId, rutinaTitle }),
-  pdfDownloaded: (pdfId: string, pdfTitle: string) =>
-    trackEvent(analyticsEvents.pdfDownloaded, { pdfId, pdfTitle }),
+  pdfDownloaded: (pdfId: string, pdfTitle: string, category?: string) =>
+    trackEvent(analyticsEvents.pdfDownloaded, { pdfId, pdfTitle, category }),
 }

@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { Eye, EyeOff, ArrowLeft, Check } from "lucide-react"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -10,14 +11,17 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge"
 import { GymLogo } from "@/components/layout/GymLogo"
 import { analytics } from "@/utils/analytics"
+import { createClient } from "@/lib/supabase/client"
 
 const benefits = ["Rutina inicial según tu objetivo", "Cálculo de IMC en tiempo real", "Recursos PDF descargables"]
 
 export default function RegisterPage() {
+  const router = useRouter()
+
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [form, setForm] = useState({ nombre: "", email: "", password: "" })
-  const [errors, setErrors] = useState<{ nombre?: string; email?: string; password?: string }>({})
+  const [errors, setErrors] = useState<{ nombre?: string; email?: string; password?: string; form?: string }>({})
 
   function set(field: string, value: string) {
     setForm((f) => ({ ...f, [field]: value }))
@@ -43,11 +47,39 @@ export default function RegisterPage() {
 
     setErrors({})
     setIsLoading(true)
-    // TODO: await supabase.auth.signUp({ email: form.email, password: form.password })
-    analytics.register()
-    await new Promise((r) => setTimeout(r, 1200))
-    setIsLoading(false)
-    window.location.href = "/dashboard/perfil"
+
+    const supabase = createClient()
+
+    const { error: signUpError } = await supabase.auth.signUp({
+      email: form.email,
+      password: form.password,
+      options: {
+        data: {
+          full_name: form.nombre,
+        },
+      },
+    })
+
+    if (signUpError) {
+      setErrors({ form: "No fue posible completar el registro con esos datos." })
+      setIsLoading(false)
+      return
+    }
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: form.email,
+      password: form.password,
+    })
+
+    if (signInError) {
+      setErrors({ form: "Cuenta creada. Inicia sesión para continuar." })
+      setIsLoading(false)
+      return
+    }
+
+    await analytics.register()
+    router.replace("/dashboard/perfil")
+    router.refresh()
   }
 
   return (
@@ -112,6 +144,8 @@ export default function RegisterPage() {
                   </div>
                   {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
                 </div>
+
+                {errors.form && <p className="text-xs text-destructive">{errors.form}</p>}
 
                 <Button type="submit" className="mt-2 h-10" disabled={isLoading}>
                   {isLoading ? "Creando cuenta..." : "Registrarme"}

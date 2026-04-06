@@ -2,10 +2,11 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { LayoutDashboard, User, FileText, LogOut, Settings, Menu, BarChart3 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { GymLogo } from "@/components/layout/GymLogo"
+import { createClient } from "@/lib/supabase/client"
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -19,18 +20,24 @@ const adminItems = [
 
 export function DashboardSidebar() {
   const pathname = usePathname()
+  const router = useRouter()
   const [isCollapsed, setIsCollapsed] = useState(false)
+
+  async function handleSignOut() {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.replace("/login")
+    router.refresh()
+  }
 
   return (
     <>
-      {/* Desktop sidebar */}
       <aside
         className={cn(
           "hidden md:flex flex-col border-r border-border bg-card transition-all duration-200",
           isCollapsed ? "w-16" : "w-60"
         )}
       >
-        {/* Header */}
         <div className={cn("flex h-16 items-center border-b border-border", isCollapsed ? "justify-center px-3" : "justify-between px-4")}>
           {!isCollapsed && <GymLogo href="/dashboard" />}
           {isCollapsed && (
@@ -49,7 +56,6 @@ export function DashboardSidebar() {
           )}
         </div>
 
-        {/* Nav */}
         <nav className="flex flex-1 flex-col gap-1 p-2 py-4">
           {navItems.map(({ href, icon: Icon, label }) => {
             const active = pathname === href
@@ -101,7 +107,6 @@ export function DashboardSidebar() {
           })}
         </nav>
 
-        {/* Bottom */}
         <div className={cn("flex flex-col gap-1 border-t border-border p-2 pb-4", isCollapsed && "items-center")}>
           {isCollapsed && (
             <button
@@ -122,8 +127,8 @@ export function DashboardSidebar() {
             <Settings className="h-4 w-4 shrink-0" />
             {!isCollapsed && <span>Configuración</span>}
           </button>
-          <Link
-            href="/login"
+          <button
+            onClick={handleSignOut}
             className={cn(
               "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive",
               isCollapsed && "w-auto justify-center px-2"
@@ -132,11 +137,10 @@ export function DashboardSidebar() {
           >
             <LogOut className="h-4 w-4 shrink-0" />
             {!isCollapsed && <span>Cerrar sesión</span>}
-          </Link>
+          </button>
         </div>
       </aside>
 
-      {/* Mobile bottom nav */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 flex border-t border-border bg-background md:hidden">
         {navItems.map(({ href, icon: Icon, label }) => {
           const active = pathname === href
@@ -164,10 +168,10 @@ export function DashboardSidebar() {
           <BarChart3 className="h-5 w-5" />
           <span>Admin</span>
         </Link>
-        <Link href="/login" className="flex flex-1 flex-col items-center gap-1 py-3 text-xs font-medium text-muted-foreground hover:text-destructive transition-colors">
+        <button onClick={handleSignOut} className="flex flex-1 flex-col items-center gap-1 py-3 text-xs font-medium text-muted-foreground hover:text-destructive transition-colors">
           <LogOut className="h-5 w-5" />
           <span>Salir</span>
-        </Link>
+        </button>
       </nav>
     </>
   )

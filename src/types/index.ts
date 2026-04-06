@@ -25,8 +25,6 @@ export interface ImcResult {
   color: string
 }
 
-export type DiaSemana = "Lun" | "Mar" | "Mié" | "Jue" | "Vie" | "Sáb" | "Dom"
-
 export interface Ejercicio {
   nombre: string
   series: number
@@ -57,11 +55,28 @@ export interface RecursoPDF {
   titulo: string
   descripcion: string
   categoria: "nutricion" | "entrenamiento" | "recuperacion" | "motivacion"
-  paginas: number
-  tamaño: string
+  paginas?: number
+  tamaño?: string
   url: string
   destacado?: boolean
 }
+
+export interface AnalyticsEvent {
+  event: string
+  properties?: Record<string, unknown>
+  timestamp?: string
+}
+
+export interface RoutineRecommendation {
+  id: string
+  title: string
+  description: string
+  goal: Objetivo
+  experience: Experiencia
+  days_per_week: number
+  routine_data: Rutina
+}
+
 
 export interface Testimonio {
   id: string
@@ -71,10 +86,4 @@ export interface Testimonio {
   texto: string
   rating: number
   objetivo: string
-}
-
-export interface AnalyticsEvent {
-  event: string
-  properties?: Record<string, unknown>
-  timestamp?: string
 }
