@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 import type { Database } from "@/types/database"
-import { supabaseAnonKey, supabaseUrl } from "@/lib/supabase/env"
+import { supabaseAnonKey, supabaseUrl } from "@/lib/supabase/env-public"
 
 const PRIVATE_PREFIXES = ["/dashboard"]
 const AUTH_ROUTES = ["/login", "/register"]

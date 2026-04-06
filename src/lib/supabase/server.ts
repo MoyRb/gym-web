@@ -1,8 +1,10 @@
+import "server-only"
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 import type { Database } from "@/types/database"
-import { supabaseAnonKey, supabaseServiceRoleKey, supabaseUrl } from "@/lib/supabase/env"
+import { supabaseAnonKey, supabaseUrl } from "@/lib/supabase/env-public"
+import { supabaseServiceRoleKey } from "@/lib/supabase/env-server"
 
 export async function createClient() {
   const cookieStore = await cookies()
