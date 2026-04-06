@@ -17,11 +17,13 @@ import type { RecursoPDF } from "@/types"
 export default function DashboardPage() {
   const { profile } = useProfile()
 
-  useEffect(() => {
-    analytics.dashboardVisitado()
-  }, [])
+  const rutina = profile ? recomendarRutina(profile.objetivo, profile.experiencia, profile.dias_por_semana) : null
 
-  if (!profile) {
+  useEffect(() => {
+    if (rutina) analytics.routineViewed(rutina.id, rutina.titulo)
+  }, [rutina])
+
+  if (!profile || !rutina) {
     return (
       <div className="flex flex-col items-center justify-center gap-6 py-24 text-center">
         <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10">
@@ -29,8 +31,8 @@ export default function DashboardPage() {
         </div>
         <div>
           <h2 className="text-xl font-semibold">Completa tu perfil físico</h2>
-          <p className="mt-2 text-muted-foreground max-w-sm">
-            Para recibir tu rutina personalizada necesitamos algunos datos básicos sobre ti.
+          <p className="mt-2 max-w-sm text-muted-foreground">
+            Para recibir tu rutina recomendada necesitamos tus datos básicos.
           </p>
         </div>
         <Link href="/dashboard/perfil">
@@ -43,27 +45,23 @@ export default function DashboardPage() {
     )
   }
 
-  const rutina = recomendarRutina(profile.objetivo, profile.experiencia, profile.dias_por_semana)
   const featuredResources = mockRecursos.filter((r) => r.destacado).slice(0, 2)
 
+
   function handleDownload(recurso: RecursoPDF) {
-    analytics.pdfDescargado(recurso.id, recurso.titulo)
+    analytics.pdfDownloaded(recurso.id, recurso.titulo)
   }
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Welcome */}
       <WelcomeCard profile={profile} />
 
-      {/* Stats grid */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* IMC */}
         <div className="lg:col-span-1">
           <ImcCard peso_kg={profile.peso_kg} altura_cm={profile.altura_cm} />
         </div>
 
-        {/* Quick profile summary */}
-        <div className="lg:col-span-2 grid grid-cols-2 gap-4 content-start">
+        <div className="grid grid-cols-2 content-start gap-4 lg:col-span-2">
           {[
             { label: "Tu objetivo", value: profile.objetivo.replace(/_/g, " "), icon: "🎯" },
             { label: "Nivel", value: profile.experiencia, icon: "💪" },
@@ -72,22 +70,21 @@ export default function DashboardPage() {
           ].map((stat) => (
             <div
               key={stat.label}
-              className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4 ring-1 ring-foreground/5"
+              className="rounded-xl border border-border bg-card p-4 ring-1 ring-foreground/5"
             >
               <span className="text-2xl">{stat.icon}</span>
               <div>
-                <p className="text-xs text-muted-foreground font-medium">{stat.label}</p>
-                <p className="font-semibold capitalize mt-0.5">{stat.value}</p>
+                <p className="text-xs font-medium text-muted-foreground">{stat.label}</p>
+                <p className="mt-0.5 font-semibold capitalize">{stat.value}</p>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Routine */}
       <div>
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
+          <h2 className="flex items-center gap-2 text-lg font-semibold">
             <Dumbbell className="h-5 w-5 text-primary" />
             Tu rutina recomendada
           </h2>
@@ -99,13 +96,12 @@ export default function DashboardPage() {
         <RoutineCard rutina={rutina} />
       </div>
 
-      {/* Featured resources */}
       {featuredResources.length > 0 && (
         <div>
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
+            <h2 className="flex items-center gap-2 text-lg font-semibold">
               <FileText className="h-5 w-5 text-primary" />
-              Material destacado
+              Material descargable
             </h2>
             <Link href="/dashboard/recursos" className="flex items-center gap-1 text-sm text-primary hover:underline">
               Ver todo

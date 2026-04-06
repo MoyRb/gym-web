@@ -3,7 +3,7 @@
 import Image from "next/image"
 import Link from "next/link"
 import { useState } from "react"
-import { siteConfig } from "@/lib/site-config"
+import { siteConfig } from "@/config/site"
 import { cn } from "@/lib/utils"
 
 interface GymLogoProps {
@@ -36,8 +36,8 @@ export function GymLogo({ href = "/", className, size = "default" }: GymLogoProp
         />
       ) : (
         <span className={cn("font-black tracking-tight", sizes.text)}>
-          <span className="text-primary">Fitnes</span>
-          <span className="text-foreground"> Club</span>
+          <span className="text-primary">FITNESS</span>
+          <span className="text-foreground"> CLUB</span>
         </span>
       )}
     </div>

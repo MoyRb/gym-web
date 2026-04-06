@@ -1,10 +1,8 @@
 "use client"
 
-import { useState } from "react"
-import { Dumbbell, Clock, Calendar, ChevronDown, ChevronUp } from "lucide-react"
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
+import { Dumbbell, Clock, Calendar } from "lucide-react"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import type { Rutina } from "@/types"
 import { getObjetivoLabel, getExperienciaLabel } from "@/utils/routines"
@@ -25,7 +23,7 @@ export function RoutineCard({ rutina }: RoutineCardProps) {
             </CardTitle>
             <p className="text-sm text-muted-foreground">{rutina.descripcion}</p>
           </div>
-          <div className="flex flex-wrap gap-2 shrink-0">
+          <div className="flex shrink-0 flex-wrap gap-2">
             <Badge variant="outline" className="text-xs">
               <Calendar className="mr-1 h-3 w-3" />
               {rutina.dias_por_semana} días/sem
@@ -47,11 +45,7 @@ export function RoutineCard({ rutina }: RoutineCardProps) {
           <Tabs defaultValue={rutina.dias[0].dia}>
             <TabsList className="mb-4 h-auto flex-wrap gap-1 bg-transparent p-0">
               {rutina.dias.map((d) => (
-                <TabsTrigger
-                  key={d.dia}
-                  value={d.dia}
-                  className="rounded-lg border border-border bg-muted/50 px-3 py-1.5 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary"
-                >
+                <TabsTrigger key={d.dia} value={d.dia} className="rounded-lg border border-border bg-muted/50 px-3 py-1.5 text-xs data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                   {d.musculo}
                 </TabsTrigger>
               ))}
@@ -60,21 +54,18 @@ export function RoutineCard({ rutina }: RoutineCardProps) {
             {rutina.dias.map((d) => (
               <TabsContent key={d.dia} value={d.dia}>
                 <div className="mb-3">
-                  <h4 className="font-medium text-sm text-foreground">{d.dia}</h4>
+                  <h4 className="text-sm font-medium text-foreground">{d.dia}</h4>
                 </div>
                 <div className="flex flex-col gap-2">
                   {d.ejercicios.map((ej, i) => (
-                    <div
-                      key={i}
-                      className="flex flex-col gap-1 rounded-lg border border-border bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between"
-                    >
+                    <div key={`${d.dia}-${ej.nombre}`} className="flex flex-col gap-1 rounded-lg border border-border bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex items-center gap-2">
-                        <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary shrink-0">
+                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">
                           {i + 1}
                         </div>
                         <span className="text-sm font-medium">{ej.nombre}</span>
                       </div>
-                      <div className="flex flex-wrap gap-2 ml-8 sm:ml-0">
+                      <div className="ml-8 flex flex-wrap gap-2 sm:ml-0">
                         <Badge variant="secondary" className="text-xs">{ej.series} series</Badge>
                         <Badge variant="outline" className="text-xs">{ej.repeticiones} reps</Badge>
                         <Badge variant="ghost" className="text-xs text-muted-foreground">

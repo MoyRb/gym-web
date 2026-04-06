@@ -73,17 +73,6 @@ export interface Testimonio {
   objetivo: string
 }
 
-export interface Plan {
-  id: string
-  nombre: string
-  precio: number
-  periodo: "mes" | "año"
-  descripcion: string
-  caracteristicas: string[]
-  destacado?: boolean
-  badge?: string
-}
-
 export interface AnalyticsEvent {
   event: string
   properties?: Record<string, unknown>

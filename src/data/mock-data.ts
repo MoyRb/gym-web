@@ -1,4 +1,4 @@
-import type { Rutina, RecursoPDF, Testimonio, Plan, UserProfile } from "@/types"
+import type { Rutina, RecursoPDF, Testimonio, UserProfile } from "@/types"
 
 export const mockProfile: UserProfile = {
   nombre: "Alex García",
@@ -208,7 +208,7 @@ export const mockRecursos: RecursoPDF[] = [
     categoria: "nutricion",
     paginas: 24,
     tamaño: "2.4 MB",
-    url: "#",
+    url: "/pdfs/rutina-base.pdf",
     destacado: true,
   },
   {
@@ -218,7 +218,7 @@ export const mockRecursos: RecursoPDF[] = [
     categoria: "nutricion",
     paginas: 18,
     tamaño: "1.8 MB",
-    url: "#",
+    url: "/pdfs/rutina-base.pdf",
   },
   {
     id: "tecnica-ejercicios-basicos",
@@ -227,7 +227,7 @@ export const mockRecursos: RecursoPDF[] = [
     categoria: "entrenamiento",
     paginas: 32,
     tamaño: "4.1 MB",
-    url: "#",
+    url: "/pdfs/rutina-base.pdf",
     destacado: true,
   },
   {
@@ -237,7 +237,7 @@ export const mockRecursos: RecursoPDF[] = [
     categoria: "recuperacion",
     paginas: 12,
     tamaño: "1.2 MB",
-    url: "#",
+    url: "/pdfs/rutina-base.pdf",
   },
   {
     id: "psicologia-deportiva",
@@ -246,7 +246,7 @@ export const mockRecursos: RecursoPDF[] = [
     categoria: "motivacion",
     paginas: 20,
     tamaño: "1.6 MB",
-    url: "#",
+    url: "/pdfs/rutina-base.pdf",
   },
   {
     id: "suenos-y-recuperacion",
@@ -255,7 +255,7 @@ export const mockRecursos: RecursoPDF[] = [
     categoria: "recuperacion",
     paginas: 16,
     tamaño: "1.9 MB",
-    url: "#",
+    url: "/pdfs/rutina-base.pdf",
   },
 ]
 
@@ -295,51 +295,5 @@ export const mockTestimonios: Testimonio[] = [
     texto: "Mejoré mi resistencia considerablemente siguiendo el plan de 5 días. Los PDFs de movilidad y recuperación son un complemento perfecto para quien hace cardio intenso.",
     rating: 5,
     objetivo: "Resistencia",
-  },
-]
-
-export const mockPlanes: Plan[] = [
-  {
-    id: "basico",
-    nombre: "Básico",
-    precio: 0,
-    periodo: "mes",
-    descripcion: "Perfecto para comenzar tu transformación.",
-    caracteristicas: [
-      "Perfil físico completo",
-      "Cálculo de IMC",
-      "1 rutina personalizada",
-      "Acceso a 2 PDFs",
-    ],
-  },
-  {
-    id: "pro",
-    nombre: "Pro",
-    precio: 19,
-    periodo: "mes",
-    descripcion: "Para quienes van en serio con sus objetivos.",
-    caracteristicas: [
-      "Todo lo del plan Básico",
-      "Rutinas ilimitadas",
-      "Acceso a todos los PDFs",
-      "Seguimiento de progreso",
-      "Soporte prioritario",
-    ],
-    destacado: true,
-    badge: "Más popular",
-  },
-  {
-    id: "elite",
-    nombre: "Elite",
-    precio: 39,
-    periodo: "mes",
-    descripcion: "La experiencia premium completa.",
-    caracteristicas: [
-      "Todo lo del plan Pro",
-      "Sesiones de coaching 1:1",
-      "Plan nutricional personalizado",
-      "Acceso anticipado a nuevas funciones",
-      "Comunidad privada",
-    ],
   },
 ]

@@ -1,8 +1,9 @@
 "use client"
 
-import { BarChart3, Users, Target, Activity, FileText, TrendingUp, Download } from "lucide-react"
+import { BarChart3, Users, Target, Activity, TrendingUp, Download } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { siteConfig } from "@/config/site"
 import {
   mockAdminStats,
   mockObjetivoStats,
@@ -279,9 +280,10 @@ export default function AdminPage() {
         <p className="text-sm text-muted-foreground">
           <span className="font-semibold text-primary">Para conectar Supabase:</span>{" "}
           Reemplaza los imports de <code className="text-xs bg-muted px-1 py-0.5 rounded">@/data/admin-mock-data</code> por queries a las tablas{" "}
-          <code className="text-xs bg-muted px-1 py-0.5 rounded">profiles</code>,{" "}
-          <code className="text-xs bg-muted px-1 py-0.5 rounded">events</code> y{" "}
-          <code className="text-xs bg-muted px-1 py-0.5 rounded">routine_views</code>.
+          <code className="text-xs bg-muted px-1 py-0.5 rounded">{siteConfig.supabase.profilesTable}</code>,{" "}
+          <code className="text-xs bg-muted px-1 py-0.5 rounded">{siteConfig.supabase.eventsTable}</code>,{" "}
+          <code className="text-xs bg-muted px-1 py-0.5 rounded">{siteConfig.supabase.routineViewsTable}</code> y{" "}
+          <code className="text-xs bg-muted px-1 py-0.5 rounded">{siteConfig.supabase.pdfDownloadsTable}</code>.
         </p>
       </div>
     </div>

@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { ArrowRight, LogIn } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { siteConfig } from "@/lib/site-config"
+import { siteConfig } from "@/config/site"
 
 export function CtaSection() {
   return (
@@ -11,7 +11,7 @@ export function CtaSection() {
           ¿Listo para empezar?
         </h2>
         <p className="mt-4 text-lg text-primary-foreground/80 max-w-xl mx-auto">
-          Únete a {siteConfig.name} y accede a tu plan personalizado. Regístrate gratis en menos de 2 minutos.
+          Únete a {siteConfig.name} y accede a tu plan personalizado. Regístrate y obtén tu rutina inicial en minutos.
         </p>
         <div className="mt-10 flex flex-col gap-3 sm:flex-row justify-center">
           <Link href="/register">

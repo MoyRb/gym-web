@@ -5,7 +5,7 @@ const steps = [
     number: "01",
     icon: UserPlus,
     title: "Crea tu cuenta",
-    description: "Regístrate con tu email. Solo necesitas unos minutos y es completamente gratis.",
+    description: "Regístrate con tu email. Solo necesitas unos minutos y toma solo unos minutos.",
   },
   {
     number: "02",
@@ -35,7 +35,7 @@ export function HowItWorksSection() {
           <p className="text-sm font-semibold uppercase tracking-widest text-primary mb-3">Proceso</p>
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Cómo funciona</h2>
           <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-            En cuatro pasos simples tendrás acceso a todo lo que Fitnes Club tiene para ti.
+            En cuatro pasos simples tendrás acceso a todo lo que FITNESS CLUB tiene para ti.
           </p>
         </div>
 
