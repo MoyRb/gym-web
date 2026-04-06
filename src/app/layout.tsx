@@ -9,10 +9,8 @@ export const metadata: Metadata = {
   },
   description: siteConfig.description,
   icons: {
-    icon: [
-      { url: "/favicon.png", type: "image/png" },
-      { url: "/favicon.ico" },
-    ],
+    icon: [{ url: "/favicon.ico" }],
+    shortcut: ["/favicon.ico"],
   },
 }
 

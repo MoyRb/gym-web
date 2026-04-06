@@ -40,11 +40,7 @@ export function DashboardSidebar() {
       >
         <div className={cn("flex h-16 items-center border-b border-border", isCollapsed ? "justify-center px-3" : "justify-between px-4")}>
           {!isCollapsed && <GymLogo href="/dashboard" />}
-          {isCollapsed && (
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary shrink-0">
-              <span className="text-xs font-black text-primary-foreground">FC</span>
-            </div>
-          )}
+          {isCollapsed && <GymLogo href="/dashboard" size="sm" className="justify-center" />}
           {!isCollapsed && (
             <button
               onClick={() => setIsCollapsed(true)}

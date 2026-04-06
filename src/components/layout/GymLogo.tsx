@@ -13,9 +13,9 @@ interface GymLogoProps {
 }
 
 const sizeMap = {
-  sm: { height: "h-7", text: "text-base" },
-  default: { height: "h-8", text: "text-lg" },
-  lg: { height: "h-10", text: "text-xl" },
+  sm: { width: "w-24", text: "text-base" },
+  default: { width: "w-28", text: "text-lg" },
+  lg: { width: "w-36", text: "text-xl" },
 }
 
 export function GymLogo({ href = "/", className, size = "default" }: GymLogoProps) {
@@ -30,7 +30,7 @@ export function GymLogo({ href = "/", className, size = "default" }: GymLogoProp
           alt={siteConfig.logo.alt}
           width={siteConfig.logo.width}
           height={siteConfig.logo.height}
-          className={cn("w-auto object-contain", sizes.height)}
+          className={cn("h-auto object-contain", sizes.width)}
           onError={() => setImgError(true)}
           priority
         />
