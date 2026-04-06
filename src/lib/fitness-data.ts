@@ -18,11 +18,16 @@ export function toUserProfile(row: ProfileRow): UserProfile {
   }
 }
 
-export function toProfileInsert(userId: string, profile: UserProfile): Database["public"]["Tables"]["profiles"]["Insert"] {
+export function toProfileInsert(
+  userId: string,
+  username: string,
+  profile: UserProfile,
+): Database["public"]["Tables"]["profiles"]["Insert"] {
   const imc = calcularIMC(profile.peso_kg, profile.altura_cm)
   const hasValidImc = typeof imc.value === "number" && Number.isFinite(imc.value)
   return {
     id: userId,
+    username,
     full_name: profile.nombre,
     age: profile.edad,
     sex: profile.sexo,

@@ -25,7 +25,7 @@ export interface Database {
         }
         Insert: {
           id: string
-          username?: string
+          username: string
           full_name?: string | null
           age?: number | null
           sex?: string | null
