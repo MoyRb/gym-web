@@ -13,7 +13,8 @@ interface ImcCardProps {
 
 export function ImcCard({ peso_kg, altura_cm }: ImcCardProps) {
   const result = calcularIMC(peso_kg, altura_cm)
-  const barWidth = getImcBarWidth(result.value)
+  const hasValidValue = typeof result.value === "number" && Number.isFinite(result.value)
+  const barWidth = hasValidValue ? getImcBarWidth(result.value) : 0
 
   return (
     <Card>
@@ -26,24 +27,26 @@ export function ImcCard({ peso_kg, altura_cm }: ImcCardProps) {
       <CardContent className="flex flex-col gap-5">
         {/* IMC value */}
         <div className="flex items-end gap-3">
-          <span className={cn("text-5xl font-black", result.color)}>{result.value}</span>
+          <span className={cn("text-5xl font-black", result.color)}>{hasValidValue ? result.value : "--"}</span>
           <div className="mb-1 flex flex-col">
             <Badge
               variant="outline"
               className={cn("w-fit border-current/30 bg-current/5 font-medium", result.color)}
             >
-              {result.categoria}
+              {hasValidValue ? result.categoria : "Sin cálculo"}
             </Badge>
           </div>
         </div>
 
         {/* Progress bar */}
         <div className="flex flex-col gap-2">
-          <div className="relative h-3 overflow-hidden rounded-full bg-gradient-to-r from-blue-400 via-green-400 via-yellow-400 to-red-500">
-            <div
-              className="absolute top-0 h-full w-0.5 bg-foreground/80 rounded-full shadow-sm transition-all duration-700"
-              style={{ left: `${barWidth}%` }}
-            />
+          <div className={cn("relative h-3 overflow-hidden rounded-full", result.showProgress ? "bg-gradient-to-r from-blue-400 via-green-400 via-yellow-400 to-red-500" : "bg-muted")}>
+            {result.showProgress && (
+              <div
+                className="absolute top-0 h-full w-0.5 bg-foreground/80 rounded-full shadow-sm transition-all duration-700"
+                style={{ left: `${barWidth}%` }}
+              />
+            )}
           </div>
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>Bajo peso</span>
@@ -54,7 +57,9 @@ export function ImcCard({ peso_kg, altura_cm }: ImcCardProps) {
         </div>
 
         {/* Description */}
-        <p className="text-sm text-muted-foreground leading-relaxed">{result.descripcion}</p>
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          {hasValidValue ? result.descripcion : "Completa peso y altura válidos"}
+        </p>
 
         {/* Data points */}
         <div className="grid grid-cols-2 gap-3 rounded-xl bg-muted/50 p-3">

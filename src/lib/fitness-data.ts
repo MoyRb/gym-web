@@ -20,6 +20,7 @@ export function toUserProfile(row: ProfileRow): UserProfile {
 
 export function toProfileInsert(userId: string, profile: UserProfile): Database["public"]["Tables"]["profiles"]["Insert"] {
   const imc = calcularIMC(profile.peso_kg, profile.altura_cm)
+  const hasValidImc = typeof imc.value === "number" && Number.isFinite(imc.value)
   return {
     id: userId,
     full_name: profile.nombre,
@@ -30,8 +31,8 @@ export function toProfileInsert(userId: string, profile: UserProfile): Database[
     experience: profile.experiencia,
     goal: profile.objetivo,
     days_per_week: profile.dias_por_semana,
-    bmi: imc.value,
-    bmi_category: imc.categoria,
+    bmi: hasValidImc ? imc.value : null,
+    bmi_category: hasValidImc ? imc.categoria : null,
   }
 }
 
