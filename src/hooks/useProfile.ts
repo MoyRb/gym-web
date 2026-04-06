@@ -2,17 +2,16 @@
 
 import { useState, useCallback } from "react"
 import type { UserProfile } from "@/types"
-import { mockProfile } from "@/data/mock-data"
 
 // TODO: Replace localStorage with Supabase calls
 export function useProfile() {
   const [profile, setProfile] = useState<UserProfile | null>(() => {
-    if (typeof window === "undefined") return mockProfile
+    if (typeof window === "undefined") return null
     try {
       const stored = localStorage.getItem("gym_profile")
-      return stored ? (JSON.parse(stored) as UserProfile) : mockProfile
+      return stored ? (JSON.parse(stored) as UserProfile) : null
     } catch {
-      return mockProfile
+      return null
     }
   })
 

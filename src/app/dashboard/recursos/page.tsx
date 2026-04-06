@@ -25,7 +25,7 @@ export default function RecursosPage() {
   const [categoria, setCategoria] = useState<Categoria>("todos")
 
   function handleDownload(recurso: RecursoPDF) {
-    analytics.pdfDescargado(recurso.id, recurso.titulo)
+    analytics.pdfDownloaded(recurso.id, recurso.titulo)
   }
 
   const filtered = mockRecursos.filter((r) => {
@@ -46,7 +46,7 @@ export default function RecursosPage() {
           <h1 className="text-2xl font-bold">Recursos</h1>
         </div>
         <p className="text-muted-foreground text-sm">
-          Guías, planes y materiales creados por expertos para acelerar tus resultados.
+          Guías y materiales creados por expertos para acelerar tus resultados.
         </p>
       </div>
 

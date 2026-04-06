@@ -11,7 +11,7 @@ export function TestimonialsSection() {
           <p className="text-sm font-semibold uppercase tracking-widest text-primary mb-3">Testimonios</p>
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Lo que dicen nuestros socios</h2>
           <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-            Personas reales con resultados reales en Fitnes Club.
+            Personas reales con resultados reales en FITNESS CLUB.
           </p>
         </div>
 

@@ -5,32 +5,32 @@ const benefits = [
   {
     icon: Target,
     title: "Rutinas a tu medida",
-    description: "Planes adaptados a tu objetivo, nivel y disponibilidad. Diseñados por nuestro equipo de entrenadores.",
+    description: "Planes adaptados a tu objetivo, nivel y disponibilidad. Diseñados por entrenadores del gimnasio.",
   },
   {
     icon: BarChart3,
     title: "Seguimiento de tu IMC",
-    description: "Calcula y monitorea tu índice de masa corporal con interpretación clara y recomendaciones.",
+    description: "Calcula y monitorea tu índice de masa corporal con interpretación clara y recomendaciones iniciales.",
   },
   {
     icon: BookOpen,
-    title: "Material exclusivo",
-    description: "Guías de nutrición, técnica y recuperación en PDF, accesibles solo para miembros del club.",
+    title: "Material descargable",
+    description: "Guías en PDF de nutrición, técnica y recuperación para reforzar tus hábitos fuera del gym.",
   },
   {
     icon: Zap,
-    title: "Resultados visibles",
-    description: "Con un plan estructurado y seguimiento constante, los resultados llegan antes de lo que crees.",
+    title: "Resultados reales",
+    description: "Con un plan estructurado y constancia, avanzas semana a semana sin improvisar.",
   },
   {
     icon: Shield,
     title: "Entrenamiento seguro",
-    description: "Cada rutina está diseñada respetando tu nivel actual para minimizar el riesgo de lesiones.",
+    description: "Rutinas sugeridas según tu experiencia para minimizar el riesgo de lesión.",
   },
   {
     icon: Users,
-    title: "Comunidad real",
-    description: "Forma parte de una comunidad de personas comprometidas con su bienestar en Fitnes Club.",
+    title: "Comunidad FITNESS CLUB",
+    description: "Entrena acompañado de una comunidad local enfocada en salud, constancia y progreso.",
   },
 ]
 
@@ -38,13 +38,11 @@ export function BenefitsSection() {
   return (
     <section id="beneficios" className="py-20 sm:py-28">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-14">
-          <p className="text-sm font-semibold uppercase tracking-widest text-primary mb-3">Por qué elegirnos</p>
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Todo lo que necesitas para transformarte
-          </h2>
-          <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-            En Fitnes Club no solo te damos acceso a una sala — te acompañamos en todo el proceso.
+        <div className="mb-14 text-center">
+          <p className="mb-3 text-sm font-semibold uppercase tracking-widest text-primary">Por qué elegirnos</p>
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Un gimnasio real con apoyo digital útil</h2>
+          <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
+            FITNESS CLUB combina entrenamiento presencial con una plataforma simple para ayudarte a sostener tu proceso.
           </p>
         </div>
 
@@ -58,8 +56,8 @@ export function BenefitsSection() {
                     <Icon className="h-6 w-6 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-semibold mb-1">{b.title}</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{b.description}</p>
+                    <h3 className="mb-1 font-semibold">{b.title}</h3>
+                    <p className="text-sm leading-relaxed text-muted-foreground">{b.description}</p>
                   </div>
                 </CardContent>
               </Card>

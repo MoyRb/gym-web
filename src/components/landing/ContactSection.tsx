@@ -2,7 +2,7 @@ import Link from "next/link"
 import { MapPin, Phone, Mail, Clock, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { siteConfig } from "@/lib/site-config"
+import { siteConfig } from "@/config/site"
 
 export function ContactSection() {
   return (

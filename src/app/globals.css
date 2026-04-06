@@ -48,9 +48,12 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* ── Fitnes Club Light Theme ──────────────────────────────────────── */
+/* ── FITNESS CLUB Light Theme ──────────────────────────────────────── */
 :root {
   /* Brand: primary=#E11392 (hot pink), secondary=#323E49 (dark steel) */
+  --font-sans: "Inter", "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
+  --font-geist-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
   --background: #F7F7F7;
   --foreground: #1F2937;
 
@@ -60,7 +63,7 @@
   --popover: #FFFFFF;
   --popover-foreground: #1F2937;
 
-  /* Primary — Fitnes Club pink */
+  /* Primary — FITNESS CLUB pink */
   --primary: #E11392;
   --primary-foreground: #FFFFFF;
 
@@ -98,7 +101,7 @@
   --sidebar-ring: #E11392;
 }
 
-/* ── Fitnes Club Dark Theme ───────────────────────────────────────── */
+/* ── FITNESS CLUB Dark Theme ───────────────────────────────────────── */
 .dark {
   --background: #1A2228;
   --foreground: #F8FAFC;
