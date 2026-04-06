@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { ArrowRight, FileText, User, Dumbbell } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -9,21 +9,76 @@ import { ImcCard } from "@/components/dashboard/ImcCard"
 import { RoutineCard } from "@/components/dashboard/RoutineCard"
 import { ResourceCard } from "@/components/dashboard/ResourceCard"
 import { useProfile } from "@/hooks/useProfile"
-import { recomendarRutina } from "@/utils/routines"
 import { analytics } from "@/utils/analytics"
-import { mockRecursos } from "@/data/mock-data"
-import type { RecursoPDF } from "@/types"
+import { createClient } from "@/lib/supabase/client"
+import { mapResource } from "@/lib/fitness-data"
+import type { RecursoPDF, Rutina } from "@/types"
 
 export default function DashboardPage() {
-  const { profile } = useProfile()
-
-  const rutina = profile ? recomendarRutina(profile.objetivo, profile.experiencia, profile.dias_por_semana) : null
+  const { profile, loadProfile, isFetched } = useProfile()
+  const [resources, setResources] = useState<RecursoPDF[]>([])
+  const [routine, setRoutine] = useState<Rutina | null>(null)
 
   useEffect(() => {
-    if (rutina) analytics.routineViewed(rutina.id, rutina.titulo)
-  }, [rutina])
+    const supabase = createClient()
 
-  if (!profile || !rutina) {
+    void loadProfile()
+
+    void (async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (!user) return
+
+      const [resourceResult, routineResult] = await Promise.all([
+        supabase
+          .from("resources")
+          .select("*")
+          .eq("is_active", true)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("routine_recommendations")
+          .select("routine_data")
+          .eq("user_id", user.id)
+          .maybeSingle(),
+      ])
+
+      if (resourceResult.data) {
+        setResources(resourceResult.data.map(mapResource))
+      }
+
+      const routineRow = routineResult.data as { routine_data?: unknown } | null
+      if (routineRow?.routine_data) {
+        setRoutine(routineRow.routine_data as Rutina)
+      }
+    })()
+  }, [loadProfile])
+
+  useEffect(() => {
+    if (routine) void analytics.routineViewed(routine.id, routine.titulo)
+  }, [routine])
+
+  const featuredResources = useMemo(() => resources.slice(0, 2), [resources])
+
+  async function handleDownload(recurso: RecursoPDF) {
+    const supabase = createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (user) {
+      await supabase.from("user_resource_downloads").insert({ user_id: user.id, resource_id: recurso.id })
+    }
+
+    await analytics.pdfDownloaded(recurso.id, recurso.titulo, recurso.categoria)
+  }
+
+  if (!isFetched) {
+    return <div className="py-24 text-center text-muted-foreground">Cargando dashboard...</div>
+  }
+
+  if (!profile || !routine) {
     return (
       <div className="flex flex-col items-center justify-center gap-6 py-24 text-center">
         <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10">
@@ -43,13 +98,6 @@ export default function DashboardPage() {
         </Link>
       </div>
     )
-  }
-
-  const featuredResources = mockRecursos.filter((r) => r.destacado).slice(0, 2)
-
-
-  function handleDownload(recurso: RecursoPDF) {
-    analytics.pdfDownloaded(recurso.id, recurso.titulo)
   }
 
   return (
@@ -93,7 +141,7 @@ export default function DashboardPage() {
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
-        <RoutineCard rutina={rutina} />
+        <RoutineCard rutina={routine} />
       </div>
 
       {featuredResources.length > 0 && (

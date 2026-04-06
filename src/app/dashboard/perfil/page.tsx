@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { User, Save, RotateCcw, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -45,9 +45,19 @@ const defaultProfile: UserProfile = {
 }
 
 export default function PerfilPage() {
-  const { profile, saveProfile, isLoading } = useProfile()
+  const { profile, saveProfile, loadProfile, isLoading, isFetched } = useProfile()
   const [saved, setSaved] = useState(false)
-  const [form, setForm] = useState<UserProfile>(() => profile ?? defaultProfile)
+  const [error, setError] = useState<string | null>(null)
+  const [form, setForm] = useState<UserProfile>(defaultProfile)
+
+  useEffect(() => {
+    void (async () => {
+      const loaded = await loadProfile()
+      if (loaded) {
+        setForm(loaded)
+      }
+    })()
+  }, [loadProfile])
 
   function set<K extends keyof UserProfile>(key: K, value: UserProfile[K]) {
     setForm((f) => ({ ...f, [key]: value }))
@@ -55,14 +65,24 @@ export default function PerfilPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    await saveProfile(form)
-    analytics.profileCompleted(form.objetivo, form.experiencia)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 3000)
+    setError(null)
+
+    try {
+      await saveProfile(form)
+      await analytics.profileCompleted(form.objetivo, form.experiencia)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 3000)
+    } catch {
+      setError("No pudimos guardar tu perfil. Inténtalo de nuevo.")
+    }
   }
 
   function resetForm() {
     setForm(profile ?? defaultProfile)
+  }
+
+  if (!isFetched) {
+    return <div className="py-24 text-center text-muted-foreground">Cargando perfil...</div>
   }
 
   return (
@@ -170,6 +190,8 @@ export default function PerfilPage() {
                   </div>
                 </CardContent>
               </Card>
+
+              {error && <p className="text-sm text-destructive">{error}</p>}
 
               <div className="flex items-center gap-3">
                 <Button type="submit" className="gap-2" disabled={isLoading}>

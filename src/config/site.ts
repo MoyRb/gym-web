@@ -51,9 +51,9 @@ export const siteConfig = {
   },
   supabase: {
     profilesTable: "profiles",
-    eventsTable: "events",
-    routineViewsTable: "routine_views",
-    pdfDownloadsTable: "pdf_downloads",
+    eventsTable: "analytics_events",
+    routineTable: "routine_recommendations",
+    downloadsTable: "user_resource_downloads",
   },
 } as const
 

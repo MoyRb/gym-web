@@ -1,13 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { FileText, Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { ResourceCard } from "@/components/dashboard/ResourceCard"
-import { mockRecursos } from "@/data/mock-data"
 import { analytics } from "@/utils/analytics"
 import { cn } from "@/lib/utils"
+import { createClient } from "@/lib/supabase/client"
+import { mapResource } from "@/lib/fitness-data"
 import type { RecursoPDF } from "@/types"
 
 type Categoria = RecursoPDF["categoria"] | "todos"
@@ -23,12 +24,38 @@ const categorias: { value: Categoria; label: string }[] = [
 export default function RecursosPage() {
   const [query, setQuery] = useState("")
   const [categoria, setCategoria] = useState<Categoria>("todos")
+  const [resources, setResources] = useState<RecursoPDF[]>([])
 
-  function handleDownload(recurso: RecursoPDF) {
-    analytics.pdfDownloaded(recurso.id, recurso.titulo)
+  useEffect(() => {
+    const supabase = createClient()
+
+    void (async () => {
+      const { data } = await supabase
+        .from("resources")
+        .select("*")
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+
+      if (data) {
+        setResources(data.map(mapResource))
+      }
+    })()
+  }, [])
+
+  async function handleDownload(recurso: RecursoPDF) {
+    const supabase = createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (user) {
+      await supabase.from("user_resource_downloads").insert({ user_id: user.id, resource_id: recurso.id })
+    }
+
+    await analytics.pdfDownloaded(recurso.id, recurso.titulo, recurso.categoria)
   }
 
-  const filtered = mockRecursos.filter((r) => {
+  const filtered = resources.filter((r) => {
     const matchesQuery =
       query.trim() === "" ||
       r.titulo.toLowerCase().includes(query.toLowerCase()) ||
@@ -39,7 +66,6 @@ export default function RecursosPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Header */}
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-2">
           <FileText className="h-5 w-5 text-primary" />
@@ -50,7 +76,6 @@ export default function RecursosPage() {
         </p>
       </div>
 
-      {/* Filters */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
@@ -81,7 +106,6 @@ export default function RecursosPage() {
         </div>
       </div>
 
-      {/* Results count */}
       <div className="flex items-center gap-2">
         <span className="text-sm text-muted-foreground">
           {filtered.length} {filtered.length === 1 ? "recurso" : "recursos"} encontrados
@@ -91,7 +115,6 @@ export default function RecursosPage() {
         )}
       </div>
 
-      {/* Grid */}
       {filtered.length > 0 ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((r) => (
