@@ -5,6 +5,16 @@ import { createClient } from "@/lib/supabase/client"
 import { toProfileInsert, toRoutineInsert, toUserProfile } from "@/lib/fitness-data"
 import type { UserProfile } from "@/types"
 
+function getUsernameFromMetadata(user: { user_metadata?: unknown }) {
+  const candidate = user.user_metadata && typeof user.user_metadata === "object"
+    ? (user.user_metadata as { username?: unknown }).username
+    : undefined
+
+  if (typeof candidate !== "string") return null
+  const normalized = candidate.trim().toLowerCase()
+  return normalized.length > 0 ? normalized : null
+}
+
 export function useProfile() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -53,7 +63,34 @@ export function useProfile() {
       if (userError) throw userError
       if (!user) throw new Error("No hay sesión activa")
 
-      const profilePayload = toProfileInsert(user.id, data)
+      const metadataUsername = getUsernameFromMetadata(user)
+      let username = metadataUsername
+
+      if (!username) {
+        const { data: existingProfile, error: profileLookupError } = await supabase
+          .from("profiles")
+          .select("username")
+          .eq("id", user.id)
+          .maybeSingle()
+
+        if (profileLookupError) {
+          throw new Error(`No se pudo recuperar el username del perfil: ${profileLookupError.message}`)
+        }
+
+        const existingUsername = typeof existingProfile?.username === "string"
+          ? existingProfile.username.trim().toLowerCase()
+          : ""
+
+        if (existingUsername) {
+          username = existingUsername
+        }
+      }
+
+      if (!username) {
+        throw new Error("No se encontró username en la sesión ni en el perfil. Vuelve a iniciar sesión.")
+      }
+
+      const profilePayload = toProfileInsert(user.id, username, data)
       const { error: profileError } = await supabase.from("profiles").upsert(profilePayload)
       if (profileError) throw profileError
 
@@ -64,6 +101,11 @@ export function useProfile() {
       if (routineError) throw routineError
 
       setProfile(data)
+    } catch (error) {
+      if (process.env.NODE_ENV !== "production") {
+        console.error("[useProfile.saveProfile] Error guardando perfil", error)
+      }
+      throw error
     } finally {
       setIsLoading(false)
     }
