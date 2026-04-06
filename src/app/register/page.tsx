@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { GymLogo } from "@/components/layout/GymLogo"
 import { analytics } from "@/utils/analytics"
 import { createClient } from "@/lib/supabase/client"
+import { normalizeUsername, usernameToInternalEmail, validateUsername } from "@/lib/auth/username"
 
 const benefits = ["Rutina inicial según tu objetivo", "Cálculo de IMC en tiempo real", "Recursos PDF descargables"]
 
@@ -20,8 +21,8 @@ export default function RegisterPage() {
 
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [form, setForm] = useState({ nombre: "", email: "", password: "" })
-  const [errors, setErrors] = useState<{ nombre?: string; email?: string; password?: string; form?: string }>({})
+  const [form, setForm] = useState({ nombre: "", username: "", password: "" })
+  const [errors, setErrors] = useState<{ nombre?: string; username?: string; password?: string; form?: string }>({})
 
   function set(field: string, value: string) {
     setForm((f) => ({ ...f, [field]: value }))
@@ -30,8 +31,8 @@ export default function RegisterPage() {
   function validate() {
     const errs: typeof errors = {}
     if (!form.nombre.trim()) errs.nombre = "El nombre es obligatorio"
-    if (!form.email) errs.email = "El email es obligatorio"
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = "Email inválido"
+    const usernameError = validateUsername(form.username)
+    if (usernameError) errs.username = usernameError
     if (!form.password) errs.password = "La contraseña es obligatoria"
     else if (form.password.length < 6) errs.password = "Mínimo 6 caracteres"
     return errs
@@ -48,26 +49,29 @@ export default function RegisterPage() {
     setErrors({})
     setIsLoading(true)
 
-    const supabase = createClient()
+    const username = normalizeUsername(form.username)
+    const internalEmail = usernameToInternalEmail(username)
 
-    const { error: signUpError } = await supabase.auth.signUp({
-      email: form.email,
-      password: form.password,
-      options: {
-        data: {
-          full_name: form.nombre,
-        },
-      },
+    const registerResponse = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        nombre: form.nombre,
+        username,
+        password: form.password,
+      }),
     })
 
-    if (signUpError) {
-      setErrors({ form: "No fue posible completar el registro con esos datos." })
+    if (!registerResponse.ok) {
+      const body = (await registerResponse.json().catch(() => null)) as { error?: string } | null
+      setErrors({ form: body?.error ?? "No fue posible completar el registro con esos datos." })
       setIsLoading(false)
       return
     }
 
+    const supabase = createClient()
     const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: form.email,
+      email: internalEmail,
       password: form.password,
     })
 
@@ -77,7 +81,7 @@ export default function RegisterPage() {
       return
     }
 
-    await analytics.register()
+    await analytics.register("username")
     router.replace("/dashboard/perfil")
     router.refresh()
   }
@@ -129,9 +133,9 @@ export default function RegisterPage() {
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" placeholder="tu@email.com" value={form.email} onChange={(e) => set("email", e.target.value)} aria-invalid={!!errors.email} className="h-10" />
-                  {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
+                  <Label htmlFor="username">Nombre de usuario</Label>
+                  <Input id="username" type="text" placeholder="ej: juan.perez" value={form.username} onChange={(e) => set("username", e.target.value)} aria-invalid={!!errors.username} className="h-10" />
+                  {errors.username && <p className="text-xs text-destructive">{errors.username}</p>}
                 </div>
 
                 <div className="flex flex-col gap-1.5">
