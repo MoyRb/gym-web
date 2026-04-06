@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server"
 import { categoryLabel, formatGoal, getMonthStartIso, goalColor, imcColor, percentage } from "@/lib/fitness-data"
-import { getAdminEmails } from "@/lib/supabase/env"
+import { getAdminEmails } from "@/lib/supabase/env-server"
 
 function StatCard({
   title,
