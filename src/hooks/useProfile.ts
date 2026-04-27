@@ -4,6 +4,7 @@ import { useState, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { getUserSafely } from "@/lib/supabase/auth-helpers"
 import { toProfileInsert, toRoutineInsert, toUserProfile } from "@/lib/fitness-data"
+import { findTemplateForProfile } from "@/lib/routine-catalog"
 import type { UserProfile } from "@/types"
 
 function getUsernameFromMetadata(user: { user_metadata?: unknown }) {
@@ -85,7 +86,12 @@ export function useProfile() {
       const { error: profileError } = await supabase.from("profiles").upsert(profilePayload)
       if (profileError) throw profileError
 
-      const routinePayload = toRoutineInsert(user.id, data)
+      const routineTemplate = await findTemplateForProfile(supabase, data)
+      if (!routineTemplate) {
+        throw new Error("No hay rutinas base activas configuradas")
+      }
+
+      const routinePayload = toRoutineInsert(user.id, routineTemplate)
       const { error: routineError } = await supabase
         .from("routine_recommendations")
         .upsert(routinePayload, { onConflict: "user_id" })

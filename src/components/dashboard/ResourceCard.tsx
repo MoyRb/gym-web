@@ -1,13 +1,19 @@
-import { Download, BookOpen, Utensils, Heart, Zap } from "lucide-react"
+import { Download, BookOpen, Utensils, Heart, Zap, Flame, Move, Timer, FileText } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import type { RecursoPDF } from "@/types"
 import { cn } from "@/lib/utils"
 
 const categoryConfig: Record<RecursoPDF["categoria"], { label: string; icon: typeof Zap; className: string }> = {
+  rutinas: { label: "Rutinas", icon: FileText, className: "bg-primary/10 text-primary" },
+  calentamiento: { label: "Calentamiento", icon: Flame, className: "bg-orange-500/10 text-orange-600" },
+  movilidad: { label: "Movilidad", icon: Move, className: "bg-cyan-500/10 text-cyan-600" },
+  cardio: { label: "Cardio", icon: Timer, className: "bg-rose-500/10 text-rose-600" },
+  nutricion_basica: { label: "Nutrición básica", icon: Utensils, className: "bg-green-500/10 text-green-600" },
+  recuperacion: { label: "Recuperación", icon: Heart, className: "bg-blue-500/10 text-blue-600" },
+  principiantes: { label: "Principiantes", icon: BookOpen, className: "bg-violet-500/10 text-violet-600" },
   nutricion: { label: "Nutrición", icon: Utensils, className: "bg-green-500/10 text-green-600" },
   entrenamiento: { label: "Entrenamiento", icon: Zap, className: "bg-primary/10 text-primary" },
-  recuperacion: { label: "Recuperación", icon: Heart, className: "bg-blue-500/10 text-blue-600" },
   motivacion: { label: "Motivación", icon: BookOpen, className: "bg-purple-500/10 text-purple-600" },
 }
 

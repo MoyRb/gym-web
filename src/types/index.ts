@@ -36,26 +36,46 @@ export interface Ejercicio {
 
 export interface DiaRutina {
   dia: string
+  nombre_dia: string
+  enfoque: string
   musculo: string
   ejercicios: Ejercicio[]
+  notas?: string
 }
 
 export interface Rutina {
   id: string
-  titulo: string
-  descripcion: string
+  title: string
+  slug?: string
+  short_description: string
+  level_label: string
   objetivo: Objetivo
   experiencia: Experiencia
   dias_por_semana: number
   duracion_semanas: number
+  estimated_session_minutes: number
+  focus_areas: string[]
   dias: DiaRutina[]
+  recomendaciones_generales?: string[]
 }
+
+export type RecursoCategoria =
+  | "rutinas"
+  | "calentamiento"
+  | "movilidad"
+  | "cardio"
+  | "nutricion_basica"
+  | "recuperacion"
+  | "principiantes"
+  | "nutricion"
+  | "entrenamiento"
+  | "motivacion"
 
 export interface RecursoPDF {
   id: string
   titulo: string
   descripcion: string
-  categoria: "nutricion" | "entrenamiento" | "recuperacion" | "motivacion"
+  categoria: RecursoCategoria
   paginas?: number
   tamaño?: string
   url: string

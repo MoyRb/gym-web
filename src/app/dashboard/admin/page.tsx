@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation"
-import { BarChart3, Users, Target, Activity, TrendingUp, Download } from "lucide-react"
+import { BarChart3, Users, Target, Activity, TrendingUp, Download, BookOpen } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server"
@@ -81,10 +81,11 @@ export default async function AdminPage() {
     .eq("id", user.id)
     .maybeSingle()
 
-  const [{ data: usersResult }, { data: profiles }, { data: resources }, { data: routineViews }, { data: pdfEvents }, { data: weeklyEvents }] = await Promise.all([
+  const [{ data: usersResult }, { data: profiles }, { data: resources }, { data: routineTemplates }, { data: routineViews }, { data: pdfEvents }, { data: weeklyEvents }] = await Promise.all([
     service.auth.admin.listUsers({ page: 1, perPage: 1000 }),
     service.from("profiles").select("id, goal, bmi_category"),
-    service.from("resources").select("id, title, category"),
+    service.from("resources").select("id, title, category, is_active"),
+    service.from("routine_templates").select("id, title, goal, experience, days_per_week, is_active"),
     service.from("analytics_events").select("metadata").eq("event_type", "routine_viewed"),
     service.from("analytics_events").select("metadata").eq("event_type", "pdf_downloaded"),
     service.from("analytics_events").select("event_type, created_at").order("created_at", { ascending: false }).limit(500),
@@ -93,7 +94,8 @@ export default async function AdminPage() {
   const adminProfile = adminProfileData as { is_admin: boolean | null } | null
 
   const safeProfiles = (profiles ?? []) as Array<{ goal: string | null; bmi_category: string | null }>
-  const safeResources = (resources ?? []) as Array<{ id: string; title: string; category: "nutricion" | "entrenamiento" | "recuperacion" | "motivacion" }>
+  const safeResources = (resources ?? []) as Array<{ id: string; title: string; category: "rutinas" | "calentamiento" | "movilidad" | "cardio" | "nutricion_basica" | "recuperacion" | "principiantes" | "nutricion" | "entrenamiento" | "motivacion"; is_active: boolean }>
+  const safeRoutineTemplates = (routineTemplates ?? []) as Array<{ id: string; title: string; goal: string; experience: string; days_per_week: number; is_active: boolean }>
   const safeRoutineViews = (routineViews ?? []) as Array<{ metadata: unknown }>
   const safePdfEvents = (pdfEvents ?? []) as Array<{ metadata: unknown }>
   const safeWeeklyEvents = (weeklyEvents ?? []) as Array<{ event_type: string; created_at: string }>
@@ -167,7 +169,7 @@ export default async function AdminPage() {
 
     pdfMap.set(key, {
       titulo: metadata.pdfTitle ?? resource?.title ?? key,
-      categoria: metadata.category ? categoryLabel(metadata.category as "nutricion" | "entrenamiento" | "recuperacion" | "motivacion") : resource?.category ? categoryLabel(resource.category) : "General",
+      categoria: metadata.category ? categoryLabel(metadata.category as Parameters<typeof categoryLabel>[0]) : resource?.category ? categoryLabel(resource.category) : "General",
       descargas: (current?.descargas ?? 0) + 1,
     })
   }
@@ -182,6 +184,9 @@ export default async function AdminPage() {
     if (event.event_type === "login") current.sesiones += 1
     dailyMap.set(key, current)
   }
+
+  const activeResources = safeResources.filter((r) => r.is_active).length
+  const activeTemplates = safeRoutineTemplates.filter((r) => r.is_active).length
 
   const dailyActivity = Array.from(dailyMap.entries()).map(([dia, value]) => ({
     dia: dia.charAt(0).toUpperCase() + dia.slice(1),
@@ -287,6 +292,56 @@ export default async function AdminPage() {
           </CardContent>
         </Card>
       </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base"><BookOpen className="h-4 w-4 text-primary" />Biblioteca de contenido</CardTitle>
+            <CardDescription>Resumen de rutinas base y recursos cargados</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <p><span className="font-semibold">Rutinas base activas:</span> {activeTemplates} / {safeRoutineTemplates.length}</p>
+            <p><span className="font-semibold">Recursos activos:</span> {activeResources} / {safeResources.length}</p>
+            <p className="text-muted-foreground">Próximo paso: edición desde CMS (pendiente).</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Rutinas base publicadas</CardTitle>
+            <CardDescription>Catálogo disponible para recomendaciones</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 max-h-72 overflow-auto">
+            {safeRoutineTemplates.slice(0, 12).map((item) => (
+              <div key={item.id} className="flex items-center justify-between gap-2 rounded-lg border p-2 text-sm">
+                <div className="min-w-0">
+                  <p className="font-medium truncate">{item.title}</p>
+                  <p className="text-xs text-muted-foreground truncate">{formatGoal(item.goal)} · {item.experience} · {item.days_per_week} días</p>
+                </div>
+                <Badge variant={item.is_active ? "secondary" : "outline"}>{item.is_active ? "Activa" : "Inactiva"}</Badge>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Recursos publicados</CardTitle>
+          <CardDescription>Material visible para usuarios autenticados</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2 max-h-72 overflow-auto">
+          {safeResources.slice(0, 12).map((item) => (
+            <div key={item.id} className="flex items-center justify-between gap-2 rounded-lg border p-2 text-sm">
+              <div className="min-w-0">
+                <p className="font-medium truncate">{item.title}</p>
+                <p className="text-xs text-muted-foreground">{categoryLabel(item.category)}</p>
+              </div>
+              <Badge variant={item.is_active ? "secondary" : "outline"}>{item.is_active ? "Activo" : "Inactivo"}</Badge>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

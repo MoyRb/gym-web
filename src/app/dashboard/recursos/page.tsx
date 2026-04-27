@@ -8,17 +8,20 @@ import { ResourceCard } from "@/components/dashboard/ResourceCard"
 import { analytics } from "@/utils/analytics"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
-import { mapResource } from "@/lib/fitness-data"
+import { categoryLabel, mapResource } from "@/lib/fitness-data"
 import type { RecursoPDF } from "@/types"
 
 type Categoria = RecursoPDF["categoria"] | "todos"
 
 const categorias: { value: Categoria; label: string }[] = [
   { value: "todos", label: "Todos" },
-  { value: "entrenamiento", label: "Entrenamiento" },
-  { value: "nutricion", label: "Nutrición" },
+  { value: "rutinas", label: "Rutinas" },
+  { value: "calentamiento", label: "Calentamiento" },
+  { value: "movilidad", label: "Movilidad" },
+  { value: "cardio", label: "Cardio" },
+  { value: "nutricion_basica", label: "Nutrición básica" },
   { value: "recuperacion", label: "Recuperación" },
-  { value: "motivacion", label: "Motivación" },
+  { value: "principiantes", label: "Principiantes" },
 ]
 
 export default function RecursosPage() {
@@ -72,7 +75,7 @@ export default function RecursosPage() {
           <h1 className="text-2xl font-bold">Recursos</h1>
         </div>
         <p className="text-muted-foreground text-sm">
-          Guías y materiales creados por expertos para acelerar tus resultados.
+          Biblioteca inicial de material práctico para entrenamiento, técnica y hábitos.
         </p>
       </div>
 
@@ -111,7 +114,7 @@ export default function RecursosPage() {
           {filtered.length} {filtered.length === 1 ? "recurso" : "recursos"} encontrados
         </span>
         {categoria !== "todos" && (
-          <Badge variant="secondary" className="text-xs">{categorias.find((c) => c.value === categoria)?.label}</Badge>
+          <Badge variant="secondary" className="text-xs">{categoryLabel(categoria)}</Badge>
         )}
       </div>
 

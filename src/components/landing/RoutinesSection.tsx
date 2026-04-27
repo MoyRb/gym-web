@@ -7,8 +7,8 @@ import { Card, CardContent } from "@/components/ui/card"
 const routineExamples = [
   {
     emoji: "💪",
-    titulo: "Hipertrofia – Principiante",
-    descripcion: "3 días/semana. Movimientos compuestos básicos para construir tu base muscular.",
+    titulo: "Masa muscular — 4 días",
+    descripcion: "4 días/semana. Enfoque torso-pierna para progresar en fuerza e hipertrofia.",
     dias: 3,
     nivel: "Principiante",
     objetivo: "Ganar músculo",
@@ -17,8 +17,8 @@ const routineExamples = [
   },
   {
     emoji: "🔥",
-    titulo: "Quema de Grasa – 4 Días",
-    descripcion: "4 días/semana. Circuitos y HIIT para maximizar la pérdida de grasa.",
+    titulo: "Pérdida de grasa — 3 días",
+    descripcion: "3 días/semana. Fuerza + cardio para sostener déficit sin perder rendimiento.",
     dias: 4,
     nivel: "Intermedio",
     objetivo: "Bajar grasa",
@@ -27,8 +27,8 @@ const routineExamples = [
   },
   {
     emoji: "⚡",
-    titulo: "Resistencia Funcional – 5 Días",
-    descripcion: "5 días/semana. Cardio, funcional y fuerza-resistencia para atletas.",
+    titulo: "Resistencia mixta — 5 días",
+    descripcion: "5 días/semana. Carrera, intervalos y fuerza-resistencia para mejorar capacidad aeróbica.",
     dias: 5,
     nivel: "Intermedio",
     objetivo: "Resistencia",
@@ -52,14 +52,14 @@ export function RoutinesSection() {
               </h2>
             </div>
             <p className="text-lg text-muted-foreground leading-relaxed">
-              Según tu objetivo, nivel de experiencia y días disponibles, el sistema te recomienda la rutina más adecuada. Nada genérico — todo adaptado.
+              Según tu objetivo, nivel de experiencia y días disponibles, el sistema te recomienda la rutina más adecuada. Plantillas claras, ordenadas y aplicables desde tu primera semana.
             </p>
             <ul className="flex flex-col gap-3">
               {[
                 "Rutinas para ganar masa muscular, bajar grasa o mejorar resistencia",
                 "Adaptadas a principiantes, intermedios y avanzados",
                 "Con descripción de ejercicios, series, reps y tiempos de descanso",
-                "Se actualizan a medida que avanzas",
+                "Con estructura por día, ejercicios, series, repeticiones y descansos",
               ].map((item) => (
                 <li key={item} className="flex items-start gap-2 text-sm text-muted-foreground">
                   <span className="mt-0.5 h-4 w-4 shrink-0 rounded-full bg-primary/20 flex items-center justify-center">

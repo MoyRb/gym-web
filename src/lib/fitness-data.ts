@@ -1,7 +1,6 @@
 import { calcularIMC } from "@/utils/imc"
-import { recomendarRutina } from "@/utils/routines"
 import type { Database, Json, ResourceCategory } from "@/types/database"
-import type { Objetivo, Experiencia, RecursoPDF, Rutina, UserProfile } from "@/types"
+import type { Objetivo, Experiencia, RecursoPDF, UserProfile } from "@/types"
 
 export type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"]
 
@@ -41,20 +40,28 @@ export function toProfileInsert(
   }
 }
 
-export function buildRoutine(profile: UserProfile): Rutina {
-  return recomendarRutina(profile.objetivo, profile.experiencia, profile.dias_por_semana)
-}
-
-export function toRoutineInsert(userId: string, profile: UserProfile) {
-  const routine = buildRoutine(profile)
+export function toRoutineInsert(userId: string, routine: Database["public"]["Tables"]["routine_templates"]["Row"]) {
   return {
     user_id: userId,
-    title: routine.titulo,
-    description: routine.descripcion,
-    goal: routine.objetivo,
-    experience: routine.experiencia,
-    days_per_week: routine.dias_por_semana,
-    routine_data: routine as unknown as Json,
+    title: routine.title,
+    description: routine.short_description,
+    goal: routine.goal,
+    experience: routine.experience,
+    days_per_week: routine.days_per_week,
+    routine_data: {
+      id: routine.id,
+      title: routine.title,
+      slug: routine.slug,
+      short_description: routine.short_description,
+      level_label: routine.level_label,
+      objetivo: routine.goal,
+      experiencia: routine.experience,
+      dias_por_semana: routine.days_per_week,
+      duracion_semanas: routine.duration_weeks,
+      estimated_session_minutes: routine.estimated_session_minutes,
+      focus_areas: routine.focus_areas,
+      ...((routine.routine_data as Record<string, unknown>) ?? {}),
+    } as Json,
   }
 }
 
@@ -120,9 +127,15 @@ export function imcColor(category: string) {
 
 export function categoryLabel(category: ResourceCategory): string {
   const labels: Record<ResourceCategory, string> = {
+    rutinas: "Rutinas",
+    calentamiento: "Calentamiento",
+    movilidad: "Movilidad",
+    cardio: "Cardio",
+    nutricion_basica: "Nutrición básica",
+    recuperacion: "Recuperación",
+    principiantes: "Principiantes",
     nutricion: "Nutrición",
     entrenamiento: "Entrenamiento",
-    recuperacion: "Recuperación",
     motivacion: "Motivación",
   }
   return labels[category]
