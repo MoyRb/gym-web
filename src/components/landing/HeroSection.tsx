@@ -52,7 +52,7 @@ export function HeroSection() {
               <Button
                 size="lg"
                 variant="outline"
-                className="gap-2 border-white/30 px-8 text-base text-secondary-foreground hover:bg-white/10"
+                className="gap-2 border-white/70 bg-white px-8 text-base text-slate-800 shadow-sm hover:bg-white/90 hover:text-slate-900"
               >
                 {siteConfig.institutional.ctaSecondary}
                 <ChevronRight className="h-4 w-4" />
