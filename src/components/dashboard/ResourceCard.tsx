@@ -19,12 +19,13 @@ const categoryConfig: Record<RecursoPDF["categoria"], { label: string; icon: typ
 
 interface ResourceCardProps {
   recurso: RecursoPDF
-  onDownload?: (recurso: RecursoPDF) => void
+  onDownload?: (recurso: RecursoPDF) => void | Promise<void>
 }
 
 export function ResourceCard({ recurso, onDownload }: ResourceCardProps) {
   const config = categoryConfig[recurso.categoria]
   const Icon = config.icon
+  const isAvailable = recurso.disponible ?? Boolean(recurso.url)
 
   return (
     <Card className={cn("group transition-shadow hover:shadow-md", recurso.destacado && "ring-2 ring-primary/20")}>
@@ -48,15 +49,20 @@ export function ResourceCard({ recurso, onDownload }: ResourceCardProps) {
           {recurso.tamaño ? <span className="text-xs text-muted-foreground">{recurso.tamaño}</span> : null}
         </div>
 
-        <a
-          href={recurso.url}
-          download
+        <button
+          type="button"
+          disabled={!isAvailable}
           onClick={() => onDownload?.(recurso)}
-          className="inline-flex h-8 w-full items-center justify-center gap-2 rounded-lg border border-border bg-background text-sm font-medium transition-colors hover:border-primary hover:bg-primary hover:text-primary-foreground"
+          className={cn(
+            "inline-flex h-8 w-full items-center justify-center gap-2 rounded-lg border text-sm font-medium transition-colors",
+            isAvailable
+              ? "border-border bg-background hover:border-primary hover:bg-primary hover:text-primary-foreground"
+              : "cursor-not-allowed border-dashed border-border bg-muted text-muted-foreground"
+          )}
         >
           <Download className="h-3.5 w-3.5" />
-          Descargar PDF
-        </a>
+          {isAvailable ? "Descargar PDF" : "Disponible pronto"}
+        </button>
       </CardContent>
     </Card>
   )

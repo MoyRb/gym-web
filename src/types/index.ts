@@ -79,6 +79,7 @@ export interface RecursoPDF {
   paginas?: number
   tamaño?: string
   url: string
+  disponible?: boolean
   destacado?: boolean
 }
 
