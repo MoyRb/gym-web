@@ -4,7 +4,7 @@ import Link from "next/link"
 import { Menu, X } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { GymLogo } from "@/components/layout/GymLogo"
+import { BrandMark } from "@/components/layout/BrandMark"
 import { siteConfig } from "@/config/site"
 
 export function PublicHeader() {
@@ -13,7 +13,7 @@ export function PublicHeader() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur-sm">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <GymLogo />
+        <BrandMark variant="header" className="text-lg sm:text-xl" />
 
         <nav className="hidden items-center gap-6 md:flex">
           {siteConfig.navigation.map((link) => (

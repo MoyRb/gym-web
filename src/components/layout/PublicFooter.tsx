@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { MapPin, Phone, Mail, Clock } from "lucide-react"
-import { GymLogo } from "@/components/layout/GymLogo"
+import { BrandMark } from "@/components/layout/BrandMark"
 import { siteConfig } from "@/config/site"
 
 export function PublicFooter() {
@@ -9,10 +9,10 @@ export function PublicFooter() {
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
           <div className="flex flex-col gap-4">
-            <GymLogo className="brightness-0 invert" />
-            <p className="text-sm leading-relaxed text-secondary-foreground/70">
-              {siteConfig.slogan}
-            </p>
+            <div className="inline-flex w-fit rounded-xl bg-white/90 px-3 py-2">
+              <BrandMark variant="auth" />
+            </div>
+            <p className="text-sm leading-relaxed text-secondary-foreground/70">{siteConfig.slogan}</p>
           </div>
 
           <div>

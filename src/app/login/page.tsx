@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { GymLogo } from "@/components/layout/GymLogo"
+import { BrandMark } from "@/components/layout/BrandMark"
 import { analytics } from "@/utils/analytics"
 import { createClient } from "@/lib/supabase/client"
 import { usernameToInternalEmail, validateUsername } from "@/lib/auth/username"
@@ -66,7 +66,7 @@ export default function LoginPage() {
       <div className="absolute -right-40 -top-40 -z-10 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
 
       <header className="flex h-16 items-center border-b border-border/40 bg-background/95 px-4 sm:px-6">
-        <GymLogo />
+        <BrandMark variant="header" className="text-lg sm:text-xl" />
         <Link href="/" className="ml-auto flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
           <ArrowLeft className="h-4 w-4" />
           Volver al inicio

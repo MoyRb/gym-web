@@ -1,7 +1,7 @@
 import Link from "next/link"
-import { ArrowRight, ChevronRight } from "lucide-react"
+import { ArrowRight, ChevronRight, Clock3, MapPin, Phone } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { GymLogo } from "@/components/layout/GymLogo"
+import { BrandMark } from "@/components/layout/BrandMark"
 import { siteConfig } from "@/config/site"
 
 export function HeroSection() {
@@ -14,17 +14,32 @@ export function HeroSection() {
 
       <div className="relative mx-auto max-w-7xl px-4 py-24 sm:px-6 sm:py-32 lg:px-8">
         <div className="flex flex-col items-center text-center text-secondary-foreground">
-          <div className="mb-8">
-            <GymLogo size="lg" className="justify-center brightness-0 invert" />
+          <div className="mb-8 rounded-2xl border border-white/15 bg-white/90 px-5 py-3 shadow-lg">
+            <BrandMark href={undefined} variant="hero" />
           </div>
 
-          <h1 className="max-w-4xl text-4xl font-black leading-tight tracking-tight text-secondary-foreground sm:text-5xl lg:text-6xl xl:text-7xl">
-            <span className="text-primary">FITNESS CLUB:</span> {siteConfig.institutional.heroTitle}
+          <h1 className="max-w-4xl text-4xl font-black leading-tight tracking-tight text-secondary-foreground sm:text-5xl lg:text-6xl">
+            {siteConfig.institutional.heroTitle}
           </h1>
 
-          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-secondary-foreground/75">
+          <p className="mt-6 max-w-3xl text-lg leading-relaxed text-secondary-foreground/80">
             {siteConfig.institutional.heroSubtitle}
           </p>
+
+          <div className="mt-6 grid w-full max-w-3xl gap-3 text-left sm:grid-cols-3">
+            <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm">
+              <p className="mb-1 flex items-center gap-2 font-semibold text-primary"><MapPin className="h-4 w-4" />Ubicación</p>
+              <p className="text-secondary-foreground/75">{siteConfig.contact.address}</p>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm">
+              <p className="mb-1 flex items-center gap-2 font-semibold text-primary"><Clock3 className="h-4 w-4" />Horario</p>
+              <p className="text-secondary-foreground/75">{siteConfig.contact.hours[0].time}</p>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm">
+              <p className="mb-1 flex items-center gap-2 font-semibold text-primary"><Phone className="h-4 w-4" />Contacto</p>
+              <p className="text-secondary-foreground/75">{siteConfig.contact.phone}</p>
+            </div>
+          </div>
 
           <div className="mt-10 flex flex-col gap-3 sm:flex-row">
             <Link href="/register">
@@ -43,22 +58,6 @@ export function HeroSection() {
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </Link>
-          </div>
-
-          <div className="mt-16 w-full max-w-3xl">
-            <div className="grid grid-cols-3 gap-4 rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
-              {[
-                { value: "+500", label: "Socios activos", emoji: "💪" },
-                { value: "100%", label: "Rutinas personalizadas", emoji: "🎯" },
-                { value: "7 días", label: "Acompañamiento", emoji: "📞" },
-              ].map((item) => (
-                <div key={item.label} className="flex flex-col items-center gap-1 text-center">
-                  <span className="text-2xl">{item.emoji}</span>
-                  <span className="text-2xl font-black text-primary">{item.value}</span>
-                  <span className="text-xs text-secondary-foreground/60">{item.label}</span>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       </div>
