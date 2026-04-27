@@ -1,5 +1,6 @@
 "use client"
 
+import { useSyncExternalStore } from "react"
 import { Moon, SunMedium } from "lucide-react"
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
@@ -11,7 +12,17 @@ type ThemeToggleProps = {
 
 export function ThemeToggle({ collapsed = false, className }: ThemeToggleProps) {
   const { resolvedTheme, setTheme } = useTheme()
-  const isDark = resolvedTheme === "dark"
+  const mounted = useSyncExternalStore(
+    () => () => undefined,
+    () => true,
+    () => false
+  )
+
+  const isDark = mounted ? resolvedTheme === "dark" : false
+  const ariaLabel = mounted
+    ? (isDark ? "Activar modo claro" : "Activar modo oscuro")
+    : "Cambiar tema"
+  const label = mounted ? (isDark ? "Modo oscuro" : "Modo claro") : "Tema"
 
   return (
     <button
@@ -23,8 +34,8 @@ export function ThemeToggle({ collapsed = false, className }: ThemeToggleProps) 
         className
       )}
       title={collapsed ? "Alternar tema" : undefined}
-      aria-label={isDark ? "Activar modo claro" : "Activar modo oscuro"}
-      aria-pressed={isDark}
+      aria-label={ariaLabel}
+      aria-pressed={mounted ? isDark : undefined}
     >
       <span className={cn("relative flex h-5 w-10 items-center rounded-full transition-colors", isDark ? "bg-primary/70" : "bg-secondary/30", collapsed && "hidden")}>
         <span
@@ -42,7 +53,7 @@ export function ThemeToggle({ collapsed = false, className }: ThemeToggleProps) 
       ) : (
         <span className="flex items-center gap-1.5">
           {isDark ? <Moon className="h-4 w-4 text-primary" /> : <SunMedium className="h-4 w-4 text-amber-500" />}
-          <span>{isDark ? "Modo oscuro" : "Modo claro"}</span>
+          <span>{label}</span>
         </span>
       )}
     </button>
