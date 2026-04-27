@@ -10,6 +10,17 @@ function getDistance(a: Experiencia, b: Experiencia) {
   return Math.abs(EXPERIENCE_ORDER.indexOf(a) - EXPERIENCE_ORDER.indexOf(b))
 }
 
+function compareByDaysAndExperience(
+  a: RoutineTemplateRow,
+  b: RoutineTemplateRow,
+  profile: Pick<UserProfile, "experiencia" | "dias_por_semana">,
+) {
+  const byDays = Math.abs(a.days_per_week - profile.dias_por_semana) - Math.abs(b.days_per_week - profile.dias_por_semana)
+  if (byDays !== 0) return byDays
+
+  return getDistance(a.experience as Experiencia, profile.experiencia) - getDistance(b.experience as Experiencia, profile.experiencia)
+}
+
 export function toRutinaFromTemplate(row: RoutineTemplateRow): Rutina {
   const routineData = row.routine_data as {
     dias?: Rutina["dias"]
@@ -48,16 +59,23 @@ export function pickBestRoutineTemplate(
 
   if (exact) return exact
 
-  const sameGoal = templates.filter((t) => t.goal === profile.objetivo)
-  if (sameGoal.length > 0) {
-    return sameGoal.sort((a, b) => {
-      const byExperience = getDistance(a.experience as Experiencia, profile.experiencia) - getDistance(b.experience as Experiencia, profile.experiencia)
-      if (byExperience !== 0) return byExperience
-      return Math.abs(a.days_per_week - profile.dias_por_semana) - Math.abs(b.days_per_week - profile.dias_por_semana)
-    })[0]
+  const sameGoalAndExperience = templates
+    .filter((t) => t.goal === profile.objetivo && t.experience === profile.experiencia)
+    .sort((a, b) => Math.abs(a.days_per_week - profile.dias_por_semana) - Math.abs(b.days_per_week - profile.dias_por_semana))
+
+  if (sameGoalAndExperience.length > 0) {
+    return sameGoalAndExperience[0]
   }
 
-  return templates.sort((a, b) => Math.abs(a.days_per_week - profile.dias_por_semana) - Math.abs(b.days_per_week - profile.dias_por_semana))[0]
+  const sameGoal = templates
+    .filter((t) => t.goal === profile.objetivo)
+    .sort((a, b) => compareByDaysAndExperience(a, b, profile))
+
+  if (sameGoal.length > 0) {
+    return sameGoal[0]
+  }
+
+  return templates.sort((a, b) => compareByDaysAndExperience(a, b, profile))[0]
 }
 
 export async function findTemplateForProfile(

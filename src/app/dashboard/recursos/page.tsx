@@ -75,7 +75,7 @@ export default function RecursosPage() {
           <h1 className="text-2xl font-bold">Recursos</h1>
         </div>
         <p className="text-muted-foreground text-sm">
-          Biblioteca inicial de material práctico para entrenamiento, técnica y hábitos.
+          Biblioteca de material práctico para entrenamiento, técnica, recuperación y hábitos sostenibles.
         </p>
       </div>
 
