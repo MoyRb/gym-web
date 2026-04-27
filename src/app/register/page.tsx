@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { BrandMark } from "@/components/layout/BrandMark"
+import { ThemeToggle } from "@/components/layout/ThemeToggle"
 import { analytics } from "@/utils/analytics"
 import { createClient } from "@/lib/supabase/client"
 import { normalizeUsername, usernameToInternalEmail, validateUsername } from "@/lib/auth/username"
@@ -93,10 +94,13 @@ export default function RegisterPage() {
 
       <header className="flex h-16 items-center border-b border-border/40 bg-background/95 px-4 sm:px-6">
         <BrandMark variant="header" className="text-lg sm:text-xl" />
-        <Link href="/" className="ml-auto flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
-          <ArrowLeft className="h-4 w-4" />
-          Volver
-        </Link>
+        <div className="ml-auto flex items-center gap-2">
+          <ThemeToggle className="w-auto px-2.5 py-1.5" />
+          <Link href="/" className="flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
+            <ArrowLeft className="h-4 w-4" />
+            Volver
+          </Link>
+        </div>
       </header>
 
       <main className="flex flex-1 items-center justify-center px-4 py-12">

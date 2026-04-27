@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { getUserSafely } from "@/lib/supabase/auth-helpers"
 import { toProfileInsert, toRoutineInsert, toUserProfile } from "@/lib/fitness-data"
 import type { UserProfile } from "@/types"
 
@@ -24,12 +25,7 @@ export function useProfile() {
     setIsLoading(true)
     try {
       const supabase = createClient()
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser()
-
-      if (userError) throw userError
+      const user = await getUserSafely(supabase, "useProfile.loadProfile")
       if (!user) {
         setProfile(null)
         return null
@@ -55,12 +51,7 @@ export function useProfile() {
     setIsLoading(true)
     try {
       const supabase = createClient()
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser()
-
-      if (userError) throw userError
+      const user = await getUserSafely(supabase, "useProfile.saveProfile")
       if (!user) throw new Error("No hay sesión activa")
 
       const metadataUsername = getUsernameFromMetadata(user)

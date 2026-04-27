@@ -3,9 +3,10 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { LayoutDashboard, User, FileText, LogOut, Settings, Menu, BarChart3 } from "lucide-react"
+import { LayoutDashboard, User, FileText, LogOut, Menu, BarChart3 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { BrandMark } from "@/components/layout/BrandMark"
+import { ThemeToggle } from "@/components/layout/ThemeToggle"
 import { createClient } from "@/lib/supabase/client"
 
 const navItems = [
@@ -25,7 +26,10 @@ export function DashboardSidebar() {
 
   async function handleSignOut() {
     const supabase = createClient()
-    await supabase.auth.signOut()
+    const { error } = await supabase.auth.signOut({ scope: "local" })
+    if (error && process.env.NODE_ENV !== "production") {
+      console.warn("[sidebar] No se pudo cerrar sesión local", error.message)
+    }
     router.replace("/login")
     router.refresh()
   }
@@ -113,16 +117,7 @@ export function DashboardSidebar() {
               <Menu className="h-4 w-4" />
             </button>
           )}
-          <button
-            className={cn(
-              "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
-              isCollapsed && "w-auto justify-center px-2"
-            )}
-            title={isCollapsed ? "Configuración" : undefined}
-          >
-            <Settings className="h-4 w-4 shrink-0" />
-            {!isCollapsed && <span>Configuración</span>}
-          </button>
+          <ThemeToggle collapsed={isCollapsed} />
           <button
             onClick={handleSignOut}
             className={cn(

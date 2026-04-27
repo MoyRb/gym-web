@@ -5,6 +5,7 @@ import { Menu, X } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { BrandMark } from "@/components/layout/BrandMark"
+import { ThemeToggle } from "@/components/layout/ThemeToggle"
 import { siteConfig } from "@/config/site"
 
 export function PublicHeader() {
@@ -28,6 +29,7 @@ export function PublicHeader() {
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
+          <ThemeToggle className="w-auto px-2.5 py-1.5" />
           <Link href="/login">
             <Button variant="ghost" size="sm">
               Iniciar sesión
@@ -61,6 +63,7 @@ export function PublicHeader() {
               </Link>
             ))}
             <div className="mt-2 flex flex-col gap-2 border-t border-border pt-3">
+              <ThemeToggle />
               <Link href="/login" onClick={() => setMenuOpen(false)}>
                 <Button variant="outline" className="w-full" size="sm">
                   Iniciar sesión
