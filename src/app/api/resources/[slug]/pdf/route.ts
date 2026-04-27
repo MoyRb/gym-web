@@ -1,5 +1,5 @@
 import { renderToBuffer } from "@react-pdf/renderer"
-import { buildFallbackPdfResource, getPdfResourceBySlug } from "@/lib/pdf/resources"
+import { buildFallbackPdfResource, getPdfResourceBySlug, inferResourceCategoryFromSlug } from "@/lib/pdf/resources"
 import { createFitnessClubPdfDocument } from "@/lib/pdf/template"
 
 export const runtime = "nodejs"
@@ -13,14 +13,19 @@ export async function GET(request: Request, { params }: { params: Promise<Params
     return new Response("Recurso inválido", { status: 400 })
   }
 
+  const foundResource = getPdfResourceBySlug(slug)
   const resource =
-    getPdfResourceBySlug(slug) ??
+    foundResource ??
     buildFallbackPdfResource({
       slug,
       title: slug.replaceAll("-", " ").replace(/\\b\\w/g, (char) => char.toUpperCase()),
       description: "Guía dinámica de FITNESS CLUB con estructura accionable para entrenar con criterio.",
-      category: "rutinas",
+      category: inferResourceCategoryFromSlug(slug),
     })
+
+  if (!foundResource && process.env.NODE_ENV !== "production") {
+    console.warn(`[pdf] fallback usado para slug no mapeado: "${slug}"`)
+  }
 
   const buffer = await renderToBuffer(createFitnessClubPdfDocument(resource))
   const requestUrl = new URL(request.url)
