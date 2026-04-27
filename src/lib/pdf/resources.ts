@@ -30,23 +30,33 @@ export function buildFallbackPdfResource(input: {
     title: input.title,
     category: input.category,
     description: input.description,
-    objective: "Entregar una guía útil y segura aunque el contenido detallado esté en actualización.",
+    objective: "Entregar una guía práctica y accionable aunque el recurso no exista aún en el catálogo principal.",
     sections: [
       {
-        heading: "Resumen del recurso",
+        heading: "Cómo usar este recurso temporal",
         body: [
-          input.description,
-          "Este documento se genera en tiempo real desde la aplicación para evitar versionar binarios en el repositorio.",
+          "Define una meta semanal concreta (ejemplo: completar 3 sesiones con técnica estable).",
+          "Selecciona 2-3 acciones aplicables hoy y ejecútalas durante 7 días antes de modificar el plan.",
         ],
         checklist: [
-          "Revisa el objetivo de la sesión antes de aplicar recomendaciones.",
-          "Prioriza técnica, seguridad y progresión gradual.",
+          "Registra cumplimiento diario (sí/no).",
+          "Anota energía y recuperación al terminar cada sesión.",
+          "Ajusta solo una variable por semana: volumen, intensidad o frecuencia.",
+        ],
+      },
+      {
+        heading: "Plantilla rápida de progreso",
+        body: [
+          "Día 1-2: establece línea base de cargas, tiempos o repeticiones.",
+          "Día 3-5: mantén ejecución y busca mejoras pequeñas (1-2 repeticiones o mejor técnica).",
+          "Día 6-7: revisa resultados y define el siguiente micro-objetivo.",
         ],
       },
     ],
     recommendations: [
-      "Si necesitas personalización, adapta volumen e intensidad a tu experiencia.",
-      "Consulta al equipo FITNESS CLUB para una versión específica de este recurso.",
+      "Prioriza la constancia semanal sobre cambios radicales.",
+      "Mantén una técnica segura y progresión gradual.",
+      "Detén el ejercicio si aparece dolor agudo o pérdida de control.",
     ],
   }
 }

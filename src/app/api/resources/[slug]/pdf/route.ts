@@ -18,7 +18,7 @@ export async function GET(request: Request, { params }: { params: Promise<Params
     buildFallbackPdfResource({
       slug,
       title: slug.replaceAll("-", " ").replace(/\\b\\w/g, (char) => char.toUpperCase()),
-      description: "Recurso en actualización. FITNESS CLUB mantiene este documento dinámico para revisión en PR.",
+      description: "Guía dinámica de FITNESS CLUB con estructura accionable para entrenar con criterio.",
       category: "rutinas",
     })
 
