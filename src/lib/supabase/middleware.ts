@@ -5,6 +5,15 @@ import { supabaseAnonKey, supabaseUrl } from "@/lib/supabase/env-public"
 
 const PRIVATE_PREFIXES = ["/dashboard"]
 const AUTH_ROUTES = ["/login", "/register"]
+const SUPABASE_COOKIE_PREFIXES = ["sb-", "supabase-"]
+
+function clearSupabaseCookies(request: NextRequest, response: NextResponse) {
+  for (const { name } of request.cookies.getAll()) {
+    if (!SUPABASE_COOKIE_PREFIXES.some((prefix) => name.startsWith(prefix))) continue
+    request.cookies.delete(name)
+    response.cookies.delete(name)
+  }
+}
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request })
@@ -24,7 +33,23 @@ export async function updateSession(request: NextRequest) {
 
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser()
+
+  if (userError) {
+    const isInvalidRefreshToken =
+      userError.message.includes("Invalid Refresh Token") ||
+      userError.message.includes("Refresh Token Not Found")
+
+    if (isInvalidRefreshToken) {
+      clearSupabaseCookies(request, response)
+      if (process.env.NODE_ENV !== "production") {
+        console.warn("[middleware] Refresh token inválido detectado. Cookies limpiadas.")
+      }
+    } else if (process.env.NODE_ENV !== "production") {
+      console.warn("[middleware] Error recuperando usuario", userError.message)
+    }
+  }
 
   const path = request.nextUrl.pathname
   const isPrivateRoute = PRIVATE_PREFIXES.some((prefix) => path.startsWith(prefix))

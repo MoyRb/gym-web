@@ -11,6 +11,7 @@ import { ResourceCard } from "@/components/dashboard/ResourceCard"
 import { useProfile } from "@/hooks/useProfile"
 import { analytics } from "@/utils/analytics"
 import { createClient } from "@/lib/supabase/client"
+import { getUserSafely } from "@/lib/supabase/auth-helpers"
 import { mapResource } from "@/lib/fitness-data"
 import type { RecursoPDF, Rutina } from "@/types"
 
@@ -22,12 +23,14 @@ export default function DashboardPage() {
   useEffect(() => {
     const supabase = createClient()
 
-    void loadProfile()
+    void loadProfile().catch((error) => {
+      if (process.env.NODE_ENV !== "production") {
+        console.error("[dashboard] Error cargando perfil", error)
+      }
+    })
 
     void (async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const user = await getUserSafely(supabase, "dashboard.loadUserData")
 
       if (!user) return
 
@@ -63,9 +66,7 @@ export default function DashboardPage() {
 
   async function handleDownload(recurso: RecursoPDF) {
     const supabase = createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const user = await getUserSafely(supabase, "dashboard.handleDownload")
 
     if (user) {
       await supabase.from("user_resource_downloads").insert({ user_id: user.id, resource_id: recurso.id })

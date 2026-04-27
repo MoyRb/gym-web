@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { siteConfig } from "@/config/site"
+import { ThemeProvider } from "@/components/layout/ThemeProvider"
 import "./globals.css"
 
 export const metadata: Metadata = {
@@ -21,8 +22,10 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="es" className="h-full antialiased">
-      <body className="flex min-h-full flex-col">{children}</body>
+    <html lang="es" className="h-full antialiased" suppressHydrationWarning>
+      <body className="flex min-h-full flex-col">
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
     </html>
   )
 }
