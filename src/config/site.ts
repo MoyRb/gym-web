@@ -1,16 +1,9 @@
 export const siteConfig = {
   name: "FITNESS CLUB",
   shortName: "FITNESS CLUB",
-  slogan: "Entrena con propósito. Vive con energía.",
+  slogan: "Entrena con propósito. Progresa con acompañamiento real.",
   description:
-    "Plataforma web del gimnasio FITNESS CLUB para gestionar tu perfil físico, calcular IMC, recibir rutinas y descargar material de apoyo.",
-  logo: {
-    src: "/logo.png",
-    alt: "Logo FITNESS CLUB",
-    fallback: "FITNESS CLUB",
-    width: 140,
-    height: 40,
-  },
+    "Plataforma web oficial de FITNESS CLUB para dar seguimiento a tu progreso, consultar rutinas y mantener tu entrenamiento conectado dentro y fuera del gimnasio.",
   branding: {
     primary: "#E11392",
     secondary: "#323E49",
@@ -18,15 +11,15 @@ export const siteConfig = {
     text: "#1F2937",
   },
   contact: {
-    phone: "+1 (305) 555-0142",
-    whatsapp: "+13055550142",
+    phone: "773 954 2064",
+    whatsapp: "527739542064",
     email: "contacto@fitnessclub.com",
-    address: "1250 Fitness Ave, Miami, FL",
-    googleMapsUrl: "https://maps.google.com",
+    address: "Calle Aquiles Serdán #44, Chilchota, Michoacán",
+    googleMapsUrl: "https://maps.google.com/?q=Calle+Aquiles+Serd%C3%A1n+44,+Chilchota,+Michoac%C3%A1n",
     hours: [
-      { days: "Lunes - Viernes", time: "06:00 - 22:00" },
-      { days: "Sábado", time: "08:00 - 18:00" },
-      { days: "Domingo", time: "09:00 - 14:00" },
+      { days: "Lunes a viernes", time: "6:30 AM a 9:00 PM" },
+      { days: "Sábados", time: "7:00 AM a 2:30 PM" },
+      { days: "Domingos", time: "Cerrado" },
     ],
     social: {
       instagram: "https://instagram.com/fitnessclub",
@@ -43,9 +36,9 @@ export const siteConfig = {
     { label: "Contacto", href: "#contacto" },
   ],
   institutional: {
-    heroTitle: "Tu gimnasio de verdad, ahora también en línea",
+    heroTitle: "Gimnasio real en Chilchota, ahora también conectado en línea",
     heroSubtitle:
-      "Completa tu perfil, calcula tu IMC y recibe una rutina inicial según tu objetivo. Todo pensado para tu progreso real.",
+      "En FITNESS CLUB entrenas con acompañamiento profesional, recibes rutinas según tu objetivo y das seguimiento a tu progreso desde la plataforma cuando no estás en el gym.",
     ctaPrimary: "Crear cuenta",
     ctaSecondary: "Iniciar sesión",
   },

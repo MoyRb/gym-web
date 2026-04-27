@@ -8,6 +8,7 @@ export const metadata: Metadata = {
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.description,
+  applicationName: siteConfig.name,
   icons: {
     icon: [{ url: "/favicon.ico" }],
     shortcut: ["/favicon.ico"],

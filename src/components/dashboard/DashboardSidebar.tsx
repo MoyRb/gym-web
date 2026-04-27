@@ -5,7 +5,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { LayoutDashboard, User, FileText, LogOut, Settings, Menu, BarChart3 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { GymLogo } from "@/components/layout/GymLogo"
+import { BrandMark } from "@/components/layout/BrandMark"
 import { createClient } from "@/lib/supabase/client"
 
 const navItems = [
@@ -39,8 +39,8 @@ export function DashboardSidebar() {
         )}
       >
         <div className={cn("flex h-16 items-center border-b border-border", isCollapsed ? "justify-center px-3" : "justify-between px-4")}>
-          {!isCollapsed && <GymLogo href="/dashboard" />}
-          {isCollapsed && <GymLogo href="/dashboard" size="sm" className="justify-center" />}
+          {!isCollapsed && <BrandMark href="/dashboard" variant="sidebar" />}
+          {isCollapsed && <BrandMark href="/dashboard" variant="sidebar" className="text-[10px] tracking-[0.02em] text-center leading-tight" />}
           {!isCollapsed && (
             <button
               onClick={() => setIsCollapsed(true)}
