@@ -66,12 +66,14 @@ export function toRoutineInsert(userId: string, routine: Database["public"]["Tab
 }
 
 export function mapResource(row: Database["public"]["Tables"]["resources"]["Row"]): RecursoPDF {
+  const url = row.file_url?.trim() ?? ""
   return {
     id: row.id,
     titulo: row.title,
     descripcion: row.description,
     categoria: row.category,
-    url: row.file_url,
+    url,
+    disponible: url.length > 0,
     paginas: undefined,
     tamaño: undefined,
     destacado: false,

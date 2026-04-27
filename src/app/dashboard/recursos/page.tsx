@@ -28,6 +28,7 @@ export default function RecursosPage() {
   const [query, setQuery] = useState("")
   const [categoria, setCategoria] = useState<Categoria>("todos")
   const [resources, setResources] = useState<RecursoPDF[]>([])
+  const [unavailableIds, setUnavailableIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     const supabase = createClient()
@@ -46,6 +47,22 @@ export default function RecursosPage() {
   }, [])
 
   async function handleDownload(recurso: RecursoPDF) {
+    if (!recurso.url) {
+      setUnavailableIds((prev) => new Set(prev).add(recurso.id))
+      return
+    }
+
+    try {
+      const response = await fetch(recurso.url, { method: "HEAD" })
+      if (!response.ok) {
+        setUnavailableIds((prev) => new Set(prev).add(recurso.id))
+        return
+      }
+    } catch {
+      setUnavailableIds((prev) => new Set(prev).add(recurso.id))
+      return
+    }
+
     const supabase = createClient()
     const {
       data: { user },
@@ -56,6 +73,14 @@ export default function RecursosPage() {
     }
 
     await analytics.pdfDownloaded(recurso.id, recurso.titulo, recurso.categoria)
+
+    const link = document.createElement("a")
+    link.href = recurso.url
+    link.download = ""
+    link.rel = "noopener"
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
   }
 
   const filtered = resources.filter((r) => {
@@ -120,9 +145,16 @@ export default function RecursosPage() {
 
       {filtered.length > 0 ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((r) => (
-            <ResourceCard key={r.id} recurso={r} onDownload={handleDownload} />
-          ))}
+          {filtered.map((r) => {
+            const isUnavailable = unavailableIds.has(r.id)
+            return (
+              <ResourceCard
+                key={r.id}
+                recurso={{ ...r, disponible: (r.disponible ?? Boolean(r.url)) && !isUnavailable }}
+                onDownload={handleDownload}
+              />
+            )
+          })}
         </div>
       ) : (
         <div className="flex flex-col items-center gap-4 py-20 text-center">
