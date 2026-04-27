@@ -38,7 +38,7 @@ export const siteConfig = {
   institutional: {
     heroTitle: "Gimnasio real en Chilchota, ahora también conectado en línea",
     heroSubtitle:
-      "En FITNESS CLUB entrenas con acompañamiento profesional, recibes rutinas según tu objetivo y das seguimiento a tu progreso desde la plataforma cuando no estás en el gym.",
+      "En FITNESS CLUB te registras, completas tu perfil físico y recibes una rutina inicial personalizada. Además, accedes a recursos descargables y acompañamiento digital útil para entrenar dentro y fuera del gym.",
     ctaPrimary: "Crear cuenta",
     ctaSecondary: "Iniciar sesión",
   },
