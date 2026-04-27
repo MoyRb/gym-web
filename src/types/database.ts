@@ -158,6 +158,7 @@ export interface Database {
       resources: {
         Row: {
           id: string
+          slug: string
           title: string
           description: string
           category: ResourceCategory
@@ -167,6 +168,7 @@ export interface Database {
         }
         Insert: {
           id?: string
+          slug: string
           title: string
           description: string
           category: ResourceCategory
@@ -175,6 +177,7 @@ export interface Database {
           created_at?: string
         }
         Update: {
+          slug?: string
           title?: string
           description?: string
           category?: ResourceCategory

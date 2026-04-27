@@ -52,17 +52,6 @@ export default function RecursosPage() {
       return
     }
 
-    try {
-      const response = await fetch(recurso.url, { method: "HEAD" })
-      if (!response.ok) {
-        setUnavailableIds((prev) => new Set(prev).add(recurso.id))
-        return
-      }
-    } catch {
-      setUnavailableIds((prev) => new Set(prev).add(recurso.id))
-      return
-    }
-
     const supabase = createClient()
     const {
       data: { user },

@@ -74,6 +74,14 @@ export default function DashboardPage() {
     }
 
     await analytics.pdfDownloaded(recurso.id, recurso.titulo, recurso.categoria)
+
+    const link = document.createElement("a")
+    link.href = recurso.url
+    link.download = ""
+    link.rel = "noopener"
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
   }
 
   if (!isFetched) {
