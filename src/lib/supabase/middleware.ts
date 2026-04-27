@@ -36,16 +36,15 @@ export async function updateSession(request: NextRequest) {
     error: userError,
   } = await supabase.auth.getUser()
 
+  let hasInvalidRefreshToken = false
+
   if (userError) {
-    const isInvalidRefreshToken =
+    hasInvalidRefreshToken =
       userError.message.includes("Invalid Refresh Token") ||
       userError.message.includes("Refresh Token Not Found")
 
-    if (isInvalidRefreshToken) {
+    if (hasInvalidRefreshToken) {
       clearSupabaseCookies(request, response)
-      if (process.env.NODE_ENV !== "production") {
-        console.warn("[middleware] Refresh token inválido detectado. Cookies limpiadas.")
-      }
     } else if (process.env.NODE_ENV !== "production") {
       console.warn("[middleware] Error recuperando usuario", userError.message)
     }
@@ -59,14 +58,22 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = "/login"
     url.searchParams.set("next", path)
-    return NextResponse.redirect(url)
+    const redirectResponse = NextResponse.redirect(url)
+    if (hasInvalidRefreshToken) {
+      clearSupabaseCookies(request, redirectResponse)
+    }
+    return redirectResponse
   }
 
   if (user && isAuthRoute) {
     const url = request.nextUrl.clone()
     url.pathname = "/dashboard"
     url.search = ""
-    return NextResponse.redirect(url)
+    const redirectResponse = NextResponse.redirect(url)
+    if (hasInvalidRefreshToken) {
+      clearSupabaseCookies(request, redirectResponse)
+    }
+    return redirectResponse
   }
 
   return response

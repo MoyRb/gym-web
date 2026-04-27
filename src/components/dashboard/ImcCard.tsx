@@ -13,8 +13,8 @@ interface ImcCardProps {
 
 export function ImcCard({ peso_kg, altura_cm }: ImcCardProps) {
   const result = calcularIMC(peso_kg, altura_cm)
-  const hasValidValue = typeof result.value === "number" && Number.isFinite(result.value)
-  const barWidth = hasValidValue ? getImcBarWidth(result.value) : 0
+  const imcValue = typeof result.value === "number" && Number.isFinite(result.value) ? result.value : null
+  const barWidth = imcValue !== null ? getImcBarWidth(imcValue) : 0
 
   return (
     <Card>
@@ -27,13 +27,13 @@ export function ImcCard({ peso_kg, altura_cm }: ImcCardProps) {
       <CardContent className="flex flex-col gap-5">
         {/* IMC value */}
         <div className="flex items-end gap-3">
-          <span className={cn("text-5xl font-black", result.color)}>{hasValidValue ? result.value : "--"}</span>
+          <span className={cn("text-5xl font-black", result.color)}>{imcValue ?? "--"}</span>
           <div className="mb-1 flex flex-col">
             <Badge
               variant="outline"
               className={cn("w-fit border-current/30 bg-current/5 font-medium", result.color)}
             >
-              {hasValidValue ? result.categoria : "Sin cálculo"}
+              {imcValue !== null ? result.categoria : "Sin cálculo"}
             </Badge>
           </div>
         </div>
@@ -58,7 +58,7 @@ export function ImcCard({ peso_kg, altura_cm }: ImcCardProps) {
 
         {/* Description */}
         <p className="text-sm text-muted-foreground leading-relaxed">
-          {hasValidValue ? result.descripcion : "Completa peso y altura válidos"}
+          {imcValue !== null ? result.descripcion : "Completa peso y altura válidos"}
         </p>
 
         {/* Data points */}
