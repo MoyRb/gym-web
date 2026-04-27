@@ -1,0 +1,152 @@
+import type { RecursoCategoria } from "@/types"
+import type { PdfResourceContent } from "./types"
+
+type ResourceSeed = {
+  slug: string
+  title: string
+  category: RecursoCategoria
+  description: string
+  focus: string[]
+}
+
+const CATEGORY_GUIDES: Record<RecursoCategoria, { objective: string; sections: string[]; recommendation: string }> = {
+  rutinas: {
+    objective: "Aplicar una estructura semanal estable y progresiva.",
+    sections: [
+      "Estructura de semana y distribución de esfuerzo.",
+      "Progresión sugerida para 4-8 semanas.",
+      "Registro de métricas clave por sesión.",
+    ],
+    recommendation: "Evalúa tu progreso cada 2 semanas y ajusta volumen antes que intensidad.",
+  },
+  calentamiento: {
+    objective: "Preparar articulaciones, temperatura corporal y patrón técnico antes de entrenar.",
+    sections: [
+      "Bloque de movilidad dinámica.",
+      "Activación muscular específica.",
+      "Series de aproximación al gesto principal.",
+    ],
+    recommendation: "Usa calentamientos más largos cuando hayas dormido poco o entrenes muy temprano.",
+  },
+  movilidad: {
+    objective: "Mejorar rango activo sin perder control ni estabilidad.",
+    sections: [
+      "Diagnóstico rápido de rigidez dominante.",
+      "Secuencia de movilidad activa asistida.",
+      "Integración al gesto de fuerza o postura diaria.",
+    ],
+    recommendation: "Prioriza respiración nasal lenta para reducir compensaciones y tensión innecesaria.",
+  },
+  cardio: {
+    objective: "Progresar capacidad cardiovascular con control de intensidad.",
+    sections: [
+      "Definición de zonas de trabajo con RPE.",
+      "Bloques continuos e intervalados recomendados.",
+      "Control de fatiga semanal y señales de exceso.",
+    ],
+    recommendation: "Mantén 1-2 días de cardio suave cuando aumentes sesiones de fuerza intensas.",
+  },
+  nutricion_basica: {
+    objective: "Mejorar adherencia nutricional en personas activas con estrategias simples.",
+    sections: [
+      "Distribución diaria de comidas y macros base.",
+      "Timing práctico alrededor del entrenamiento.",
+      "Planificación semanal para sostener resultados.",
+    ],
+    recommendation: "Diseña 2-3 comidas repetibles para reducir fricción y mejorar consistencia.",
+  },
+  recuperacion: {
+    objective: "Acelerar recuperación entre sesiones sin comprometer la carga de entrenamiento.",
+    sections: [
+      "Hábitos de sueño, estrés y descanso activo.",
+      "Autoevaluación de fatiga y ajustes de carga.",
+      "Protocolos de descarga y retorno progresivo.",
+    ],
+    recommendation: "Si tu rendimiento cae 2 sesiones seguidas, baja volumen 20-30% durante 4-7 días.",
+  },
+  principiantes: {
+    objective: "Construir bases técnicas y hábitos sostenibles para entrenar sin lesiones.",
+    sections: [
+      "Fundamentos de técnica y selección de cargas.",
+      "Errores frecuentes y cómo corregirlos.",
+      "Plan de progreso simple por semanas.",
+    ],
+    recommendation: "Prioriza técnica estable antes de subir peso, especialmente en patrones básicos.",
+  },
+  nutricion: {
+    objective: "Mejorar decisiones nutricionales con criterio práctico.",
+    sections: ["Organización diaria", "Selección de alimentos", "Ajustes según objetivos"],
+    recommendation: "Mantén registros simples y sostenibles.",
+  },
+  entrenamiento: {
+    objective: "Optimizar planificación y ejecución del entrenamiento.",
+    sections: ["Planificación", "Ejecución", "Seguimiento"],
+    recommendation: "Prioriza calidad de ejecución.",
+  },
+  motivacion: {
+    objective: "Fortalecer consistencia y hábitos de largo plazo.",
+    sections: ["Rutinas", "Entorno", "Seguimiento"],
+    recommendation: "Crea rutinas mínimas en días de baja energía.",
+  },
+}
+
+const RESOURCE_SEEDS: ResourceSeed[] = [
+  { slug: "guia-fullbody-3-dias", title: "Guía de rutina Full Body 3 días", category: "rutinas", description: "Estructura semanal para entrenar fuerza general con progresión simple.", focus: ["Dos días de estímulo principal y un día técnico", "Rangos de 6-12 repeticiones con RIR 1-3", "Checklist de progresión semanal"] },
+  { slug: "plantilla-torso-pierna-4-dias", title: "Plantilla Torso-Pierna 4 días", category: "rutinas", description: "Formato listo para registrar cargas, repeticiones y sensaciones por sesión.", focus: ["Control de tonelaje por grupo muscular", "Separación clara de días empuje/tracción/pierna", "Espacio para notas de recuperación"] },
+  { slug: "plan-ppl-5-dias", title: "Plan PPL 5 días para gimnasio", category: "rutinas", description: "Distribución push-pull-legs con recomendaciones de volumen por semana.", focus: ["Frecuencia y volumen por músculo", "Propuesta de quinto día para rezagos", "Ajustes cuando hay fatiga acumulada"] },
+  { slug: "progresion-cargas-8-semanas", title: "Progresión básica de cargas (8 semanas)", category: "rutinas", description: "Cómo aumentar carga o repeticiones sin perder técnica.", focus: ["Modelo doble progresión", "Cuándo subir peso vs. sumar repeticiones", "Semana puente de consolidación"] },
+  { slug: "checklist-semanal-entrenamiento", title: "Checklist semanal de entrenamiento", category: "rutinas", description: "Control de asistencia, sueño, hidratación y recuperación.", focus: ["Indicadores de cumplimiento", "Semáforo de fatiga", "Revisión semanal en 5 minutos"] },
+  { slug: "calentamiento-general-10-minutos", title: "Calentamiento general de 10 minutos", category: "calentamiento", description: "Secuencia práctica para elevar temperatura corporal y activar articulaciones.", focus: ["Movilidad global de tobillo, cadera y dorsal", "Activación de core y escápulas", "Subida gradual de pulso"] },
+  { slug: "activacion-dia-de-pierna", title: "Activación previa para día de pierna", category: "calentamiento", description: "Movilidad y activación de cadera, glúteo y tobillo antes de sentadillas.", focus: ["Apertura de cadera en plano frontal", "Glúteo medio y estabilidad de rodilla", "Series de aproximación para sentadilla/prensa"] },
+  { slug: "activacion-hombro-escapulas", title: "Activación de hombro y escápulas", category: "calentamiento", description: "Preparación para press, dominadas y remos con bandas elásticas.", focus: ["Control escapular en elevación", "Rotación externa activa", "Integración en movimientos de empuje y tracción"] },
+  { slug: "warmup-expres-6-minutos", title: "Warm-up exprés para sesiones cortas", category: "calentamiento", description: "Protocolo de 6 minutos cuando tienes poco tiempo.", focus: ["Formato por bloques de 90 segundos", "Patrones globales sin material", "Activación inmediata para empezar set 1"] },
+  { slug: "series-de-aproximacion-basicos", title: "Series de aproximación en ejercicios básicos", category: "calentamiento", description: "Cómo planear tus series previas en banca, sentadilla y peso muerto.", focus: ["Saltos de carga eficientes", "Número de reps por aproximación", "Evitar fatiga previa innecesaria"] },
+  { slug: "movilidad-cadera-tobillo", title: "Movilidad de cadera y tobillo", category: "movilidad", description: "Ejercicios para mejorar profundidad y control en patrones de pierna.", focus: ["Dorsiflexión y control de rodilla", "Rotación interna/externa de cadera", "Transferencia a sentadilla y zancadas"] },
+  { slug: "movilidad-toracica-torso", title: "Movilidad torácica para torso", category: "movilidad", description: "Rutina corta para mejorar postura en empujes y tracciones.", focus: ["Extensión torácica sin hiperextender lumbar", "Rotaciones controladas", "Mejor alineación en banca y remo"] },
+  { slug: "movilidad-hombro-press", title: "Movilidad de hombro para press", category: "movilidad", description: "Trabajo articular para overhead press y banca inclinada.", focus: ["Flexión de hombro con estabilidad", "Espacio subacromial y ritmo escapular", "Prevención de molestias por sobreuso"] },
+  { slug: "movilidad-post-fuerza", title: "Movilidad post-sesión de fuerza", category: "movilidad", description: "Vuelta a la calma con énfasis en respiración y rangos activos.", focus: ["Descenso progresivo de pulsaciones", "Movilidad suave en cadenas cargadas", "Respiración para recuperación parasimpática"] },
+  { slug: "movilidad-diaria-12-minutos", title: "Movilidad diaria de 12 minutos", category: "movilidad", description: "Secuencia simple para días sin entrenamiento intenso.", focus: ["Rutina completa sin equipamiento", "Mantenimiento de rango articular", "Bloque adaptable a mañana o noche"] },
+  { slug: "cardio-por-zonas-principiantes", title: "Cardio por zonas para principiantes", category: "cardio", description: "Cómo usar zonas de esfuerzo para progresar sin sobrecarga.", focus: ["Identificación simple por respiración y RPE", "Proporción semanal de zonas", "Errores típicos al iniciar cardio"] },
+  { slug: "intervalos-controlados-bicicleta", title: "Intervalos controlados en bicicleta", category: "cardio", description: "Protocolos 1:1 y 1:2 para mejorar resistencia y capacidad de trabajo.", focus: ["Estructura por bloques", "Cadencia y resistencia recomendadas", "Recuperación entre repeticiones"] },
+  { slug: "guia-caminata-inclinada", title: "Guía de caminata inclinada", category: "cardio", description: "Método práctico para sumar gasto energético con bajo impacto.", focus: ["Parámetros de inclinación/velocidad", "Duraciones progresivas", "Integración con días de fuerza"] },
+  { slug: "cardio-mixto-semanal", title: "Cardio mixto semanal (3-4 sesiones)", category: "cardio", description: "Ejemplo de semana combinando continuo e intervalos.", focus: ["Calendario tipo para 3 y 4 sesiones", "Distribución de intensidades", "Ajustes según fatiga de pierna"] },
+  { slug: "rpe-aplicado-a-cardio", title: "Escala de esfuerzo percibido (RPE) aplicada a cardio", category: "cardio", description: "Tabla práctica para ajustar intensidad según tu nivel.", focus: ["Interpretación de RPE por sensaciones", "Ejemplos por modalidad", "Cómo combinar con frecuencia cardiaca"] },
+  { slug: "nutricion-basica-para-entrenar", title: "Nutrición básica para entrenar", category: "nutricion_basica", description: "Guía de platos simples, hidratación y distribución diaria.", focus: ["Plato base por objetivo", "Porciones prácticas sin pesar alimentos", "Hidratación mínima diaria"] },
+  { slug: "proteina-diaria-personas-activas", title: "Proteína diaria en personas activas", category: "nutricion_basica", description: "Cómo repartir proteína en comidas para apoyar recuperación muscular.", focus: ["Rango diario por kg de peso", "Distribución en 3-5 tomas", "Fuentes prácticas y económicas"] },
+  { slug: "colaciones-pre-post-entrenamiento", title: "Colaciones pre y post entrenamiento", category: "nutricion_basica", description: "Opciones sencillas según horario y tipo de sesión.", focus: ["Snacks de digestión rápida", "Opciones post-entreno con proteína", "Qué evitar antes de sesiones intensas"] },
+  { slug: "hidratacion-entrenamientos-gimnasio", title: "Hidratación para entrenamientos de gimnasio", category: "nutricion_basica", description: "Recomendaciones prácticas antes, durante y después de entrenar.", focus: ["Consumo previo según duración", "Reposición de líquidos y sodio", "Señales simples de deshidratación"] },
+  { slug: "organizacion-semanal-comidas", title: "Organización semanal de comidas", category: "nutricion_basica", description: "Plantilla de planificación para mantener adherencia nutricional.", focus: ["Batch cooking por bloques", "Lista de compras inteligente", "Menú flexible con equivalencias"] },
+  { slug: "recuperacion-post-entreno", title: "Recuperación post-entreno", category: "recuperacion", description: "Checklist de sueño, movilidad suave y descarga muscular.", focus: ["Primeras 24 horas post sesión", "Nutrición y descanso de apoyo", "Señales de recuperación adecuada"] },
+  { slug: "sueno-y-rendimiento-fisico", title: "Sueño y rendimiento físico", category: "recuperacion", description: "Buenas prácticas para mejorar descanso y recuperación entre sesiones.", focus: ["Rutina nocturna de 45 minutos", "Higiene de luz y cafeína", "Cómo medir calidad de sueño"] },
+  { slug: "gestion-fatiga-semanal", title: "Gestión de fatiga semanal", category: "recuperacion", description: "Cómo ajustar volumen cuando aparecen señales de fatiga acumulada.", focus: ["Indicadores subjetivos y objetivos", "Árbol de decisión para ajustar carga", "Microdescargas dentro del mesociclo"] },
+  { slug: "deload-en-fuerza", title: "Días de descarga (deload) en fuerza", category: "recuperacion", description: "Cuándo y cómo aplicar una semana de descarga sin perder progreso.", focus: ["Criterios para activar deload", "Opciones de reducción de volumen/intensidad", "Retorno al bloque productivo"] },
+  { slug: "recuperacion-activa-dias-ligeros", title: "Recuperación activa para días ligeros", category: "recuperacion", description: "Opciones de baja intensidad para facilitar adaptación y constancia.", focus: ["Cardio suave + movilidad", "Trabajo respiratorio", "Estrategia para no acumular estrés"] },
+  { slug: "guia-inicio-4-semanas", title: "Guía de inicio en el gimnasio (4 semanas)", category: "principiantes", description: "Plan de adaptación para aprender técnica y crear hábito.", focus: ["Fase de adaptación por semanas", "Aprendizaje de patrones básicos", "Construcción de adherencia"] },
+  { slug: "errores-comunes-al-empezar", title: "Errores comunes al empezar", category: "principiantes", description: "Principales fallos de novato y cómo corregirlos desde el inicio.", focus: ["Errores de carga, técnica y frecuencia", "Cómo evitar saltar progresiones", "Checklist de corrección rápida"] },
+  { slug: "uso-basico-maquinas-gimnasio", title: "Uso básico de máquinas de gimnasio", category: "principiantes", description: "Referencia práctica para ajustar asiento, rango y carga inicial.", focus: ["Ajustes biomecánicos iniciales", "Rango seguro y controlado", "Progresión de carga en máquinas"] },
+  { slug: "como-elegir-peso-correctamente", title: "Cómo elegir peso correctamente", category: "principiantes", description: "Método simple para seleccionar carga segura y retadora.", focus: ["Test de esfuerzo percibido", "RIR para principiantes", "Cuándo bajar peso para reforzar técnica"] },
+  { slug: "primera-progresion-8-semanas", title: "Tu primera progresión de 8 semanas", category: "principiantes", description: "Paso a paso para mejorar sin rutinas extremas ni confusas.", focus: ["Bloques semanales claros", "Métricas mínimas de seguimiento", "Plan de continuidad al terminar"] },
+]
+
+export const PDF_RESOURCES: PdfResourceContent[] = RESOURCE_SEEDS.map((resource) => {
+  const guide = CATEGORY_GUIDES[resource.category]
+
+  return {
+    slug: resource.slug,
+    title: resource.title,
+    category: resource.category,
+    description: resource.description,
+    objective: guide.objective,
+    sections: guide.sections.map((sectionTitle, index) => ({
+      heading: sectionTitle,
+      body: [
+        `En este bloque se explica cómo aplicar ${sectionTitle.toLowerCase()} de forma práctica dentro de FITNESS CLUB.`,
+        `Ajusta la implementación según tu experiencia y disponibilidad semanal para mantener una progresión sostenible.`,
+      ],
+      checklist: [resource.focus[index] ?? resource.focus[0], "Anota sensaciones y rendimiento para facilitar decisiones semanales."],
+    })),
+    recommendations: [...resource.focus, guide.recommendation],
+  }
+})
+
+export const PDF_RESOURCES_BY_SLUG = new Map(PDF_RESOURCES.map((resource) => [resource.slug, resource]))

@@ -1,6 +1,7 @@
 import { calcularIMC } from "@/utils/imc"
 import type { Database, Json, ResourceCategory } from "@/types/database"
 import type { Objetivo, Experiencia, RecursoPDF, UserProfile } from "@/types"
+import { buildResourcePdfUrl, slugifyResourceTitle } from "@/lib/pdf/resources"
 
 export type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"]
 
@@ -66,9 +67,12 @@ export function toRoutineInsert(userId: string, routine: Database["public"]["Tab
 }
 
 export function mapResource(row: Database["public"]["Tables"]["resources"]["Row"]): RecursoPDF {
-  const url = row.file_url?.trim() ?? ""
+  const slug = row.slug?.trim() || slugifyResourceTitle(row.title)
+  const fallbackUrl = row.file_url?.trim() ?? ""
+  const url = slug ? buildResourcePdfUrl(slug) : fallbackUrl
   return {
     id: row.id,
+    slug,
     titulo: row.title,
     descripcion: row.description,
     categoria: row.category,

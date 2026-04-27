@@ -73,6 +73,7 @@ export type RecursoCategoria =
 
 export interface RecursoPDF {
   id: string
+  slug: string
   titulo: string
   descripcion: string
   categoria: RecursoCategoria
