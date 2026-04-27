@@ -14,13 +14,13 @@ const benefits = [
   },
   {
     icon: BookOpen,
-    title: "Material descargable",
-    description: "Guías en PDF de nutrición, técnica y recuperación para reforzar tus hábitos fuera del gym.",
+    title: "Biblioteca de recursos",
+    description: "Accede a material de rutinas, calentamiento, movilidad, cardio, nutrición básica y recuperación.",
   },
   {
     icon: Zap,
-    title: "Resultados reales",
-    description: "Con un plan estructurado y constancia, avanzas semana a semana sin improvisar.",
+    title: "Estructura para entrenar",
+    description: "Tienes un plan semanal claro para entrenar con criterio y sin improvisar sesión por sesión.",
   },
   {
     icon: Shield,

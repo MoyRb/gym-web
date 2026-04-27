@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { LayoutDashboard, User, FileText, LogOut, Menu, BarChart3 } from "lucide-react"
+import { LayoutDashboard, User, FileText, LogOut, Menu, BarChart3, Dumbbell } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { BrandMark } from "@/components/layout/BrandMark"
 import { ThemeToggle } from "@/components/layout/ThemeToggle"
@@ -12,6 +12,7 @@ import { createClient } from "@/lib/supabase/client"
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/dashboard/perfil", icon: User, label: "Mi perfil" },
+  { href: "/dashboard/rutina", icon: Dumbbell, label: "Mi rutina" },
   { href: "/dashboard/recursos", icon: FileText, label: "Material" },
 ]
 

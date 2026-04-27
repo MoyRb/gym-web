@@ -1,6 +1,16 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
-export type ResourceCategory = "nutricion" | "entrenamiento" | "recuperacion" | "motivacion"
+export type ResourceCategory =
+  | "rutinas"
+  | "calentamiento"
+  | "movilidad"
+  | "cardio"
+  | "nutricion_basica"
+  | "recuperacion"
+  | "principiantes"
+  | "nutricion"
+  | "entrenamiento"
+  | "motivacion"
 
 export interface Database {
   public: {
@@ -53,6 +63,58 @@ export interface Database {
           bmi?: number | null
           bmi_category?: string | null
           is_admin?: boolean | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      routine_templates: {
+        Row: {
+          id: string
+          title: string
+          slug: string | null
+          goal: string
+          experience: string
+          days_per_week: number
+          short_description: string
+          duration_weeks: number
+          estimated_session_minutes: number
+          level_label: string
+          focus_areas: string[]
+          routine_data: Json
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          slug?: string | null
+          goal: string
+          experience: string
+          days_per_week: number
+          short_description: string
+          duration_weeks: number
+          estimated_session_minutes: number
+          level_label: string
+          focus_areas?: string[]
+          routine_data: Json
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          title?: string
+          slug?: string | null
+          goal?: string
+          experience?: string
+          days_per_week?: number
+          short_description?: string
+          duration_weeks?: number
+          estimated_session_minutes?: number
+          level_label?: string
+          focus_areas?: string[]
+          routine_data?: Json
+          is_active?: boolean
           updated_at?: string
         }
         Relationships: []

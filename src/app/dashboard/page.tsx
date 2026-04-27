@@ -13,6 +13,7 @@ import { analytics } from "@/utils/analytics"
 import { createClient } from "@/lib/supabase/client"
 import { getUserSafely } from "@/lib/supabase/auth-helpers"
 import { mapResource } from "@/lib/fitness-data"
+import { normalizeRoutineData } from "@/lib/routine-catalog"
 import type { RecursoPDF, Rutina } from "@/types"
 
 export default function DashboardPage() {
@@ -53,13 +54,13 @@ export default function DashboardPage() {
 
       const routineRow = routineResult.data as { routine_data?: unknown } | null
       if (routineRow?.routine_data) {
-        setRoutine(routineRow.routine_data as Rutina)
+        setRoutine(normalizeRoutineData(routineRow.routine_data))
       }
     })()
   }, [loadProfile])
 
   useEffect(() => {
-    if (routine) void analytics.routineViewed(routine.id, routine.titulo)
+    if (routine) void analytics.routineViewed(routine.id, routine.title)
   }, [routine])
 
   const featuredResources = useMemo(() => resources.slice(0, 2), [resources])
@@ -137,8 +138,8 @@ export default function DashboardPage() {
             <Dumbbell className="h-5 w-5 text-primary" />
             Tu rutina recomendada
           </h2>
-          <Link href="/dashboard/recursos" className="flex items-center gap-1 text-sm text-primary hover:underline">
-            Ver material
+          <Link href="/dashboard/rutina" className="flex items-center gap-1 text-sm text-primary hover:underline">
+            Ver detalle completo
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
