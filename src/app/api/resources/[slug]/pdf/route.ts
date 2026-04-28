@@ -1,5 +1,6 @@
 import { renderToBuffer } from "@react-pdf/renderer"
-import { buildFallbackPdfResource, getPdfResourceBySlug, inferResourceCategoryFromSlug } from "@/lib/pdf/resources"
+import { PDF_RESOURCE_AUDIT_BY_SLUG } from "@/lib/pdf/resources-data"
+import { buildFallbackPdfResource, inferResourceCategoryFromSlug, resolvePdfResourceBySlug } from "@/lib/pdf/resources"
 import { createFitnessClubPdfDocument } from "@/lib/pdf/template"
 
 export const runtime = "nodejs"
@@ -13,7 +14,8 @@ export async function GET(request: Request, { params }: { params: Promise<Params
     return new Response("Recurso inválido", { status: 400 })
   }
 
-  const foundResource = getPdfResourceBySlug(slug)
+  const resolution = resolvePdfResourceBySlug(slug)
+  const foundResource = resolution.resource
   const resource =
     foundResource ??
     buildFallbackPdfResource({
@@ -23,8 +25,17 @@ export async function GET(request: Request, { params }: { params: Promise<Params
       category: inferResourceCategoryFromSlug(slug),
     })
 
-  if (!foundResource && process.env.NODE_ENV !== "production") {
-    console.warn(`[pdf] fallback usado para slug no mapeado: "${slug}"`)
+  if (process.env.NODE_ENV !== "production") {
+    if (!foundResource) {
+      console.warn(`[pdf] fallback | solicitado="${slug}" normalizado="${resolution.normalizedSlug}"`) 
+    } else {
+      const audit = PDF_RESOURCE_AUDIT_BY_SLUG.get(foundResource.slug)
+      if (audit?.builder === "routine-pdf-builder") {
+        console.info(`[pdf] builder específico | solicitado="${slug}" canonico="${foundResource.slug}" via="${resolution.via}"`) 
+      } else {
+        console.info(`[pdf] builder general | solicitado="${slug}" canonico="${foundResource.slug}" via="${resolution.via}"`) 
+      }
+    }
   }
 
   const buffer = await renderToBuffer(createFitnessClubPdfDocument(resource))
