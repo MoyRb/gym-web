@@ -300,6 +300,10 @@ const SPECIFIC_GENERAL_CONTENT: Record<string, SpecificGeneralContent> = {
   },
 }
 
+export function hasSpecificGeneralContent(slug: string) {
+  return Boolean(SPECIFIC_GENERAL_CONTENT[slug])
+}
+
 export function buildGeneralPdfResource(seed: ResourceSeed): PdfResourceContent {
   const specificContent = SPECIFIC_GENERAL_CONTENT[seed.slug]
 

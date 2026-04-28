@@ -9,6 +9,16 @@ const GOAL_LABEL: Record<string, string> = {
   mejorar_condicion_general: "Mejorar condición general",
 }
 
+const ROUTINE_SPECIAL_SLUGS = new Set(["progresion-cargas-8-semanas", "checklist-semanal-entrenamiento"])
+
+export function hasRoutineSnapshot(slug: string) {
+  return Boolean(ROUTINE_RESOURCE_MAP[slug])
+}
+
+export function hasRoutineSpecificContent(slug: string) {
+  return hasRoutineSnapshot(slug) || ROUTINE_SPECIAL_SLUGS.has(slug)
+}
+
 function buildRoutineSections(slug: string): PdfSection[] {
   const routine = ROUTINE_RESOURCE_MAP[slug]
   if (!routine) return []
@@ -78,7 +88,7 @@ function buildRoutineSections(slug: string): PdfSection[] {
 export function buildRoutinePdfResource(seed: ResourceSeed): PdfResourceContent | null {
   const routine = ROUTINE_RESOURCE_MAP[seed.slug]
 
-  if (!routine && !["progresion-cargas-8-semanas", "checklist-semanal-entrenamiento"].includes(seed.slug)) {
+  if (!routine && !ROUTINE_SPECIAL_SLUGS.has(seed.slug)) {
     return null
   }
 

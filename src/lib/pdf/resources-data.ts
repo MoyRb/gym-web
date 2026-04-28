@@ -1,7 +1,8 @@
 import type { PdfResourceContent } from "./types"
 import { buildGeneralPdfResource } from "./builders/general-pdf-builder"
-import { buildRoutinePdfResource } from "./builders/routine-pdf-builder"
+import { buildRoutinePdfResource, hasRoutineSnapshot } from "./builders/routine-pdf-builder"
 import { RESOURCE_SEEDS } from "./resources-content/base-resources"
+import { hasSpecificGeneralContent } from "./builders/general-pdf-builder"
 
 export type PdfBuilderName = "routine-pdf-builder" | "general-pdf-builder"
 
@@ -10,6 +11,9 @@ export type AuditedPdfResource = {
   title: string
   category: string
   builder: PdfBuilderName
+  source: "routine-snapshot" | "specific-general"
+  usesRoutineCatalog: boolean
+  usesBaseContent: boolean
   usesFallback: boolean
   content: PdfResourceContent
 }
@@ -23,6 +27,9 @@ export const PDF_RESOURCES_AUDIT: AuditedPdfResource[] = RESOURCE_SEEDS.map((see
     title: seed.title,
     category: seed.category,
     builder: routineResource ? "routine-pdf-builder" : "general-pdf-builder",
+    source: routineResource ? "routine-snapshot" : "specific-general",
+    usesRoutineCatalog: seed.category === "rutinas" && hasRoutineSnapshot(seed.slug),
+    usesBaseContent: !routineResource && !hasSpecificGeneralContent(seed.slug),
     usesFallback: false,
     content,
   }

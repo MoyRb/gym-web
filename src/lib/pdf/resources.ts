@@ -1,4 +1,5 @@
 import type { ResourceCategory } from "@/types/database"
+import { RESOURCE_SEEDS } from "./resources-content/base-resources"
 import { PDF_RESOURCES_BY_SLUG } from "./resources-data"
 import type { PdfResourceContent } from "./types"
 
@@ -8,6 +9,18 @@ const RESOURCE_SLUG_ALIASES: Record<string, string> = {
   "intervalos-controlados-en-bicicleta": "intervalos-controlados-bicicleta",
   "optimiza-tu-sueno-y-recuperacion": "sueno-y-rendimiento-fisico",
   "guia-inicial-primer-mes-gimnasio": "guia-inicio-4-semanas",
+}
+
+const RESOURCE_TITLE_SLUG_ALIASES: Record<string, string> = Object.fromEntries(
+  RESOURCE_SEEDS.map((seed) => [slugifyResourceTitle(seed.title), seed.slug]).filter(([titleSlug, slug]) => titleSlug !== slug),
+)
+
+export type ResourceResolution = {
+  requestedSlug: string
+  normalizedSlug: string
+  canonicalSlug: string
+  via: "direct" | "alias" | "title" | "missing"
+  resource: PdfResourceContent | null
 }
 
 export function slugifyResourceTitle(title: string) {
@@ -26,6 +39,8 @@ export function buildResourcePdfUrl(slug: string) {
 export function normalizeResourceSlug(slug: string) {
   return slug
     .trim()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
     .toLowerCase()
     .replaceAll("_", "-")
     .replace(/[^a-z0-9-]+/g, "-")
@@ -34,9 +49,23 @@ export function normalizeResourceSlug(slug: string) {
 }
 
 export function getPdfResourceBySlug(slug: string): PdfResourceContent | null {
+  return resolvePdfResourceBySlug(slug).resource
+}
+
+export function resolvePdfResourceBySlug(slug: string): ResourceResolution {
   const normalizedSlug = normalizeResourceSlug(decodeURIComponent(slug))
-  const canonicalSlug = RESOURCE_SLUG_ALIASES[normalizedSlug] ?? normalizedSlug
-  return PDF_RESOURCES_BY_SLUG.get(canonicalSlug) ?? null
+  const aliasCanonical = RESOURCE_SLUG_ALIASES[normalizedSlug]
+  const titleCanonical = RESOURCE_TITLE_SLUG_ALIASES[normalizedSlug]
+  const canonicalSlug = aliasCanonical ?? titleCanonical ?? normalizedSlug
+  const resource = PDF_RESOURCES_BY_SLUG.get(canonicalSlug) ?? null
+
+  return {
+    requestedSlug: slug,
+    normalizedSlug,
+    canonicalSlug,
+    via: resource ? (aliasCanonical ? "alias" : titleCanonical ? "title" : "direct") : "missing",
+    resource,
+  }
 }
 
 export function inferResourceCategoryFromSlug(slug: string): ResourceCategory {
