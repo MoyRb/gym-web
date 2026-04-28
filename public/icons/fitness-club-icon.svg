@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">FITNESS CLUB App Icon</title>
+  <desc id="desc">Icono minimalista con colores de marca y siglas FC.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#E11392" />
+      <stop offset="100%" stop-color="#323E49" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)" />
+  <circle cx="256" cy="256" r="146" fill="none" stroke="#FFFFFF" stroke-width="20" opacity="0.9" />
+  <path d="M172 232h135" stroke="#FFFFFF" stroke-width="28" stroke-linecap="round" />
+  <path d="M172 286h96" stroke="#FFFFFF" stroke-width="28" stroke-linecap="round" />
+  <path d="M338 206c-34 0-62 22-62 50s28 50 62 50" fill="none" stroke="#FFFFFF" stroke-width="28" stroke-linecap="round" />
+</svg>

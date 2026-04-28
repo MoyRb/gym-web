@@ -10,8 +10,9 @@ export const metadata: Metadata = {
   },
   description: siteConfig.description,
   applicationName: siteConfig.name,
+  manifest: "/manifest.webmanifest",
   icons: {
-    icon: [{ url: "/favicon.ico" }],
+    icon: [{ url: "/favicon.ico" }, { url: "/icons/fitness-club-icon.svg", type: "image/svg+xml" }],
     shortcut: ["/favicon.ico"],
   },
 }
