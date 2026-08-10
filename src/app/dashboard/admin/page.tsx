@@ -1,10 +1,9 @@
-import { redirect } from "next/navigation"
 import { BarChart3, Users, Target, Activity, TrendingUp, Download, BookOpen } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { createClient, createServiceRoleClient } from "@/lib/supabase/server"
+import { createServiceRoleClient } from "@/lib/supabase/server"
 import { categoryLabel, formatGoal, getMonthStartIso, goalColor, imcColor, percentage } from "@/lib/fitness-data"
-import { getAdminEmails } from "@/lib/supabase/env-server"
+import { requireAdmin } from "@/lib/auth/guards"
 
 function StatCard({
   title,
@@ -66,20 +65,9 @@ function HorizontalBar({
 }
 
 export default async function AdminPage() {
-  const supabase = await createClient()
+  await requireAdmin()
+
   const service = createServiceRoleClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) redirect("/login")
-
-  const { data: adminProfileData } = await supabase
-    .from("profiles")
-    .select("is_admin")
-    .eq("id", user.id)
-    .maybeSingle()
 
   const [{ data: usersResult }, { data: profiles }, { data: resources }, { data: routineTemplates }, { data: routineViews }, { data: pdfEvents }, { data: weeklyEvents }] = await Promise.all([
     service.auth.admin.listUsers({ page: 1, perPage: 1000 }),
@@ -91,20 +79,12 @@ export default async function AdminPage() {
     service.from("analytics_events").select("event_type, created_at").order("created_at", { ascending: false }).limit(500),
   ])
 
-  const adminProfile = adminProfileData as { is_admin: boolean | null } | null
-
   const safeProfiles = (profiles ?? []) as Array<{ goal: string | null; bmi_category: string | null }>
   const safeResources = (resources ?? []) as Array<{ id: string; title: string; category: "rutinas" | "calentamiento" | "movilidad" | "cardio" | "nutricion_basica" | "recuperacion" | "principiantes" | "nutricion" | "entrenamiento" | "motivacion"; is_active: boolean }>
   const safeRoutineTemplates = (routineTemplates ?? []) as Array<{ id: string; title: string; goal: string; experience: string; days_per_week: number; is_active: boolean }>
   const safeRoutineViews = (routineViews ?? []) as Array<{ metadata: unknown }>
   const safePdfEvents = (pdfEvents ?? []) as Array<{ metadata: unknown }>
   const safeWeeklyEvents = (weeklyEvents ?? []) as Array<{ event_type: string; created_at: string }>
-
-  const allowedEmails = getAdminEmails()
-  const isAdminByEmail = !!user.email && allowedEmails.includes(user.email.toLowerCase())
-  const isAdmin = Boolean(adminProfile?.is_admin) || isAdminByEmail
-
-  if (!isAdmin) redirect("/dashboard")
 
   const users = usersResult.users ?? []
   const totalUsuarios = users.length

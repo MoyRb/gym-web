@@ -1,5 +1,7 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
+export type AppRole = "member" | "admin"
+
 export type ResourceCategory =
   | "rutinas"
   | "calentamiento"
@@ -46,6 +48,7 @@ export interface Database {
           days_per_week?: number | null
           bmi?: number | null
           bmi_category?: string | null
+          /** @deprecated Use public.user_roles. Protected against writes by authenticated at the DB level. */
           is_admin?: boolean | null
           created_at?: string
           updated_at?: string
@@ -62,6 +65,7 @@ export interface Database {
           days_per_week?: number | null
           bmi?: number | null
           bmi_category?: string | null
+          /** @deprecated Use public.user_roles. Protected against writes by authenticated at the DB level. */
           is_admin?: boolean | null
           updated_at?: string
         }
@@ -226,9 +230,33 @@ export interface Database {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          user_id: string
+          role: AppRole
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          role: AppRole
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          role?: AppRole
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: Record<string, never>
-    Functions: Record<string, never>
+    Functions: {
+      is_current_user_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+    }
     Enums: Record<string, never>
     CompositeTypes: Record<string, never>
   }
