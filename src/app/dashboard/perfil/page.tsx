@@ -1,15 +1,19 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { User, Save, RotateCcw, CheckCircle } from "lucide-react"
+import Link from "next/link"
+import { Save, RotateCcw, CheckCircle, BookOpen, BarChart3 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ImcCard } from "@/components/dashboard/ImcCard"
+import { PageHeader } from "@/components/dashboard/PageHeader"
+import { SignOutButton } from "@/components/dashboard/SignOutButton"
 import { useProfile } from "@/hooks/useProfile"
 import { analytics } from "@/utils/analytics"
+import { createClient } from "@/lib/supabase/client"
 import type { UserProfile, Objetivo, Experiencia, Sexo } from "@/types"
 
 const objetivos: { value: Objetivo; label: string }[] = [
@@ -50,6 +54,7 @@ export default function PerfilPage() {
   const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState<UserProfile>(defaultProfile)
   const [fieldErrors, setFieldErrors] = useState<{ peso_kg?: string; altura_cm?: string }>({})
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
     void (async () => {
@@ -59,6 +64,13 @@ export default function PerfilPage() {
       }
     })()
   }, [loadProfile])
+
+  useEffect(() => {
+    const supabase = createClient()
+    void supabase.rpc("is_current_user_admin").then(({ data }) => {
+      setIsAdmin(data === true)
+    })
+  }, [])
 
   function set<K extends keyof UserProfile>(key: K, value: UserProfile[K]) {
     setForm((f) => ({ ...f, [key]: value }))
@@ -110,15 +122,10 @@ export default function PerfilPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center gap-2">
-          <User className="h-5 w-5 text-primary" />
-          <h1 className="text-2xl font-bold">Tu perfil físico</h1>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Completa tus datos para calcular tu IMC y recibir una recomendación inicial de rutina.
-        </p>
-      </div>
+      <PageHeader
+        title="Tu perfil"
+        subtitle="Completa tus datos para recibir tu rutina personalizada."
+      />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
@@ -282,6 +289,27 @@ export default function PerfilPage() {
                 <Badge variant="secondary" className="text-xs capitalize">{form.experiencia}</Badge>
                 <Badge variant="outline" className="text-xs">{form.dias_por_semana} días/sem</Badge>
               </div>
+            </div>
+
+            <div className="mt-4 flex flex-col gap-2">
+              <h4 className="text-sm font-semibold">Accesos rápidos</h4>
+              <Link
+                href="/dashboard/recursos"
+                className="flex items-center gap-3 rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <BookOpen className="h-4 w-4 shrink-0" />
+                Biblioteca
+              </Link>
+              {isAdmin && (
+                <Link
+                  href="/dashboard/admin"
+                  className="flex items-center gap-3 rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                >
+                  <BarChart3 className="h-4 w-4 shrink-0" />
+                  Administración
+                </Link>
+              )}
+              <SignOutButton />
             </div>
           </div>
         </div>

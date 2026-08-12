@@ -2,19 +2,23 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { ArrowRight, FileText, User, Dumbbell } from "lucide-react"
+import { ArrowRight, FileText, User, Dumbbell, TrendingUp, BookOpen } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { WelcomeCard } from "@/components/dashboard/WelcomeCard"
 import { ImcCard } from "@/components/dashboard/ImcCard"
 import { RoutineCard } from "@/components/dashboard/RoutineCard"
 import { ResourceCard } from "@/components/dashboard/ResourceCard"
+import { SectionHeader } from "@/components/dashboard/SectionHeader"
+import { QuickActionCard } from "@/components/dashboard/QuickActionCard"
 import { useProfile } from "@/hooks/useProfile"
 import { analytics } from "@/utils/analytics"
 import { createClient } from "@/lib/supabase/client"
 import { getUserSafely } from "@/lib/supabase/auth-helpers"
 import { mapResource } from "@/lib/fitness-data"
 import { normalizeRoutineData } from "@/lib/routine-catalog"
+import { getObjetivoLabel, getExperienciaLabel } from "@/utils/routines"
 import type { RecursoPDF, Rutina } from "@/types"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export default function DashboardPage() {
   const { profile, loadProfile, isFetched } = useProfile()
@@ -85,7 +89,21 @@ export default function DashboardPage() {
   }
 
   if (!isFetched) {
-    return <div className="py-24 text-center text-muted-foreground">Cargando dashboard...</div>
+    return (
+      <div className="flex flex-col gap-6">
+        <Skeleton className="h-40 w-full rounded-xl" />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <Skeleton className="h-48 rounded-xl" />
+          <div className="grid grid-cols-2 gap-4 lg:col-span-2">
+            <Skeleton className="h-20 rounded-xl" />
+            <Skeleton className="h-20 rounded-xl" />
+            <Skeleton className="h-20 rounded-xl" />
+            <Skeleton className="h-20 rounded-xl" />
+          </div>
+        </div>
+        <Skeleton className="h-32 w-full rounded-xl" />
+      </div>
+    )
   }
 
   if (!profile || !routine) {
@@ -120,50 +138,60 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-2 content-start gap-4 lg:col-span-2">
-          {[
-            { label: "Tu objetivo", value: profile.objetivo.replace(/_/g, " "), icon: "🎯" },
-            { label: "Nivel", value: profile.experiencia, icon: "💪" },
-            { label: "Días de entreno", value: `${profile.dias_por_semana} días/sem`, icon: "📅" },
-            { label: "Edad", value: `${profile.edad} años`, icon: "👤" },
-          ].map((stat) => (
-            <div
-              key={stat.label}
-              className="rounded-xl border border-border bg-card p-4 ring-1 ring-foreground/5"
-            >
-              <span className="text-2xl">{stat.icon}</span>
-              <div>
-                <p className="text-xs font-medium text-muted-foreground">{stat.label}</p>
-                <p className="mt-0.5 font-semibold capitalize">{stat.value}</p>
-              </div>
-            </div>
-          ))}
+          <QuickActionCard
+            href="/dashboard/rutina"
+            icon={Dumbbell}
+            label="Tu objetivo"
+            value={getObjetivoLabel(profile.objetivo)}
+          />
+          <QuickActionCard
+            href="/dashboard/progress"
+            icon={TrendingUp}
+            label="Nivel"
+            value={getExperienciaLabel(profile.experiencia)}
+          />
+          <QuickActionCard
+            href="/dashboard/recursos"
+            icon={BookOpen}
+            label="Días de entreno"
+            value={`${profile.dias_por_semana} días/sem`}
+          />
+          <QuickActionCard
+            href="/dashboard/perfil"
+            icon={User}
+            label="Mi perfil"
+            value={`${profile.edad} años · ${profile.peso_kg} kg`}
+          />
         </div>
       </div>
 
       <div>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="flex items-center gap-2 text-lg font-semibold">
-            <Dumbbell className="h-5 w-5 text-primary" />
-            Tu rutina recomendada
-          </h2>
-          <Link href="/dashboard/rutina" className="flex items-center gap-1 text-sm text-primary hover:underline">
-            Ver detalle completo
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
+        <div className="mb-4">
+          <SectionHeader
+            label="Tu entrenamiento de hoy"
+            icon={Dumbbell}
+            action={
+              <Link href="/dashboard/rutina" className="flex items-center gap-1 text-sm text-primary hover:underline">
+                Ver detalle <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            }
+          />
         </div>
         <RoutineCard rutina={routine} />
       </div>
 
       {featuredResources.length > 0 && (
         <div>
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-lg font-semibold">
-              <FileText className="h-5 w-5 text-primary" />
-              Material descargable
-            </h2>
-            <Link href="/dashboard/recursos" className="flex items-center gap-1 text-sm text-primary hover:underline">
-              Ver todo
-            </Link>
+          <div className="mb-4">
+            <SectionHeader
+              label="Material descargable"
+              icon={FileText}
+              action={
+                <Link href="/dashboard/recursos" className="text-sm text-primary hover:underline">
+                  Ver todo
+                </Link>
+              }
+            />
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {featuredResources.map((r) => (

@@ -5,6 +5,8 @@ import { FileText, Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { ResourceCard } from "@/components/dashboard/ResourceCard"
+import { PageHeader } from "@/components/dashboard/PageHeader"
+import { EmptyState } from "@/components/dashboard/EmptyState"
 import { analytics } from "@/utils/analytics"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
@@ -83,15 +85,10 @@ export default function RecursosPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center gap-2">
-          <FileText className="h-5 w-5 text-primary" />
-          <h1 className="text-2xl font-bold">Recursos</h1>
-        </div>
-        <p className="text-muted-foreground text-sm">
-          Biblioteca de material práctico para entrenamiento, técnica, recuperación y hábitos sostenibles.
-        </p>
-      </div>
+      <PageHeader
+        title="Biblioteca"
+        subtitle="Material práctico para entrenamiento, técnica y recuperación."
+      />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1 max-w-sm">
@@ -146,23 +143,19 @@ export default function RecursosPage() {
           })}
         </div>
       ) : (
-        <div className="flex flex-col items-center gap-4 py-20 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
-            <FileText className="h-8 w-8 text-muted-foreground/50" />
-          </div>
-          <div>
-            <h3 className="font-semibold">Sin resultados</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              No encontramos recursos que coincidan con tu búsqueda.
-            </p>
-          </div>
-          <button
-            onClick={() => { setQuery(""); setCategoria("todos") }}
-            className="text-sm text-primary hover:underline"
-          >
-            Limpiar filtros
-          </button>
-        </div>
+        <EmptyState
+          icon={FileText}
+          title="Sin resultados"
+          description="No encontramos recursos con esos filtros."
+          action={
+            <button
+              onClick={() => { setQuery(""); setCategoria("todos") }}
+              className="text-sm text-primary hover:underline"
+            >
+              Limpiar filtros
+            </button>
+          }
+        />
       )}
     </div>
   )

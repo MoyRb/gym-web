@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import { createServiceRoleClient } from "@/lib/supabase/server"
 import { categoryLabel, formatGoal, getMonthStartIso, goalColor, imcColor, percentage } from "@/lib/fitness-data"
 import { requireAdmin } from "@/lib/auth/guards"
+import { PageHeader } from "@/components/dashboard/PageHeader"
 
 function StatCard({
   title,
@@ -182,16 +183,11 @@ export default async function AdminPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center gap-2">
-          <BarChart3 className="h-5 w-5 text-primary" />
-          <h1 className="text-2xl font-bold">Panel de tendencias</h1>
-        </div>
-        <p className="text-muted-foreground text-sm flex items-center gap-1.5">
-          Datos agregados reales de actividad de FITNESS CLUB.
-          <Badge variant="outline" className="text-xs font-normal">Supabase en vivo</Badge>
-        </p>
-      </div>
+      <PageHeader
+        title="Panel de administración"
+        subtitle="Datos agregados reales de actividad de FITNESS CLUB."
+        actions={<Badge variant="outline" className="text-xs font-normal">Supabase en vivo</Badge>}
+      />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard title="Total de usuarios" value={totalUsuarios} sub="Registrados en la plataforma" icon={Users} accent />
