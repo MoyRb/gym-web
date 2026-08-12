@@ -2,12 +2,19 @@ import { renderToBuffer } from "@react-pdf/renderer"
 import { PDF_RESOURCE_AUDIT_BY_SLUG } from "@/lib/pdf/resources-data"
 import { buildFallbackPdfResource, inferResourceCategoryFromSlug, resolvePdfResourceBySlug } from "@/lib/pdf/resources"
 import { createFitnessClubPdfDocument } from "@/lib/pdf/template"
+import { createClient } from "@/lib/supabase/server"
 
 export const runtime = "nodejs"
 
 type Params = { slug: string }
 
 export async function GET(request: Request, { params }: { params: Promise<Params> }) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return new Response("No autorizado", { status: 401 })
+
   const { slug } = await params
 
   if (!slug) {

@@ -12,6 +12,14 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Auto-generated / tooling directories — not application code:
+    "supabase/.temp/**",
+    "supabase/.branches/**",
+    ".claude/**",
+    ".agents/**",
+    "node_modules/**",
+    "coverage/**",
+    "dist/**",
   ]),
 ]);
 

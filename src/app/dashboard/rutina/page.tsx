@@ -1,15 +1,15 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import Link from "next/link"
-import { ArrowLeft, Calendar, Clock, Target, Dumbbell, CheckCircle2 } from "lucide-react"
+import { Calendar, Clock, Target, CheckCircle2 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { normalizeRoutineData } from "@/lib/routine-catalog"
 import type { Rutina } from "@/types"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { getExperienciaLabel, getObjetivoLabel } from "@/utils/routines"
+import { PageHeader } from "@/components/dashboard/PageHeader"
+import { WorkoutDayCard } from "@/components/dashboard/WorkoutDayCard"
 
 export default function RutinaPage() {
   const [routine, setRoutine] = useState<Rutina | null>(null)
@@ -54,18 +54,7 @@ export default function RutinaPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">Tu rutina completa</h1>
-          <p className="text-sm text-muted-foreground">Plan estructurado para seguir semana a semana en el gimnasio.</p>
-        </div>
-        <Link href="/dashboard">
-          <Button variant="outline" className="gap-2">
-            <ArrowLeft className="h-4 w-4" />
-            Volver al dashboard
-          </Button>
-        </Link>
-      </div>
+      <PageHeader title="Tu rutina completa" backHref="/dashboard" backLabel="Volver al dashboard" />
 
       <Card>
         <CardHeader>
@@ -102,23 +91,8 @@ export default function RutinaPage() {
           </div>
 
           <div className="grid gap-4">
-            {routine.dias.map((day) => (
-              <Card key={day.dia} className="border-border/70">
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-base"><Dumbbell className="h-4 w-4 text-primary" />{day.nombre_dia}</CardTitle>
-                  <p className="text-sm text-muted-foreground">{day.enfoque}</p>
-                  {day.notas && <p className="text-xs text-muted-foreground">{day.notas}</p>}
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {day.ejercicios.map((exercise) => (
-                    <div key={`${day.dia}-${exercise.nombre}`} className="rounded-lg border bg-muted/20 p-3 text-sm">
-                      <p className="font-medium">{exercise.nombre}</p>
-                      <p className="text-muted-foreground">{exercise.series} series · {exercise.repeticiones} · descanso {exercise.descanso}</p>
-                      {exercise.notas && <p className="mt-1 text-xs text-muted-foreground">{exercise.notas}</p>}
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
+            {routine.dias.map((day, i) => (
+              <WorkoutDayCard key={day.dia} dia={day} index={i} defaultOpen={i === 0} />
             ))}
           </div>
 

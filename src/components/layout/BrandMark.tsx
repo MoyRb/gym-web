@@ -25,7 +25,7 @@ export function BrandMark({ href = "/", className, variant = "header" }: BrandMa
       aria-label="FITNESS CLUB"
     >
       <span className="text-primary">FITNESS</span>
-      <span className="text-slate-700">CLUB</span>
+      <span className="text-foreground">CLUB</span>
     </span>
   )
 

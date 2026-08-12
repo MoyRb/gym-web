@@ -28,7 +28,7 @@ export function ResourceCard({ recurso, onDownload }: ResourceCardProps) {
   const isAvailable = recurso.disponible ?? Boolean(recurso.url)
 
   return (
-    <Card className={cn("group transition-shadow hover:shadow-md", recurso.destacado && "ring-2 ring-primary/20")}>
+    <Card className={cn("group transition-all hover:shadow-md hover:-translate-y-0.5", recurso.destacado && "ring-2 ring-primary/20")}>
       <CardContent className="flex flex-col gap-4 pt-5">
         {recurso.destacado && <Badge className="w-fit text-xs">Destacado</Badge>}
         <div className={cn("flex h-12 w-12 items-center justify-center rounded-xl", config.className)}>

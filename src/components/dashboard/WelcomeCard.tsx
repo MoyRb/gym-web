@@ -13,9 +13,8 @@ export function WelcomeCard({ profile }: WelcomeCardProps) {
   const greeting = hour < 12 ? "Buenos días" : hour < 18 ? "Buenas tardes" : "Buenas noches"
 
   return (
-    <Card className="relative overflow-hidden bg-gradient-to-br from-primary/10 via-primary/5 to-background border-primary/20">
-      <div className="absolute right-0 top-0 h-40 w-40 rounded-bl-full bg-primary/5" />
-      <CardContent className="relative pt-6">
+    <Card className="overflow-hidden bg-gradient-to-br from-primary/8 to-background border-primary/20">
+      <CardContent className="pt-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2">

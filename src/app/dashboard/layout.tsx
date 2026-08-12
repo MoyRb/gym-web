@@ -16,10 +16,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
     redirect("/login")
   }
 
+  const { data: isAdminResult } = await supabase.rpc("is_current_user_admin")
+  const isAdmin = isAdminResult === true
+
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      <DashboardSidebar />
-      <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
+      <DashboardSidebar isAdmin={isAdmin} />
+      <main className="flex-1 overflow-y-auto pb-[calc(var(--nav-bottom-height)+env(safe-area-inset-bottom,0px))] md:pb-0">
         <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
           {children}
         </div>
