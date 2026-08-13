@@ -8,6 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "audit:pdf-content": "tsx scripts/audit-pdf-content.mjs",
+    "import:exercises": "tsx scripts/import-exercises.ts",
+    "import:exercise-media": "tsx scripts/import-exercise-media.ts",
+    "verify:exercise-media": "tsx scripts/verify-exercise-media.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"

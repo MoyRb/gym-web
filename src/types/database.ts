@@ -249,6 +249,124 @@ export interface Database {
         }
         Relationships: []
       }
+      exercises: {
+        Row: {
+          id: string
+          source: string
+          source_id: string
+          name: string
+          body_part: string
+          equipment: string
+          target: string
+          muscle_group: string | null
+          secondary_muscles: string[]
+          instructions: Json
+          instruction_steps: Json
+          source_created_at: string | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          source: string
+          source_id: string
+          name: string
+          body_part: string
+          equipment: string
+          target: string
+          muscle_group?: string | null
+          secondary_muscles?: string[]
+          instructions?: Json
+          instruction_steps?: Json
+          source_created_at?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          source?: string
+          source_id?: string
+          name?: string
+          body_part?: string
+          equipment?: string
+          target?: string
+          muscle_group?: string | null
+          secondary_muscles?: string[]
+          instructions?: Json
+          instruction_steps?: Json
+          source_created_at?: string | null
+          is_active?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      exercise_media: {
+        Row: {
+          id: string
+          exercise_id: string
+          kind: "image" | "gif" | "video"
+          storage_path: string
+          mime_type: string | null
+          width: number | null
+          height: number | null
+          attribution: string | null
+          license_status: "pending" | "licensed" | "owned"
+          license_reference: string | null
+          is_primary: boolean
+          is_active: boolean
+          content_sha256: string | null
+          source: string | null
+          source_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          exercise_id: string
+          kind: "image" | "gif" | "video"
+          storage_path: string
+          mime_type?: string | null
+          width?: number | null
+          height?: number | null
+          attribution?: string | null
+          license_status: "pending" | "licensed" | "owned"
+          license_reference?: string | null
+          is_primary?: boolean
+          is_active?: boolean
+          content_sha256?: string | null
+          source?: string | null
+          source_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          exercise_id?: string
+          kind?: "image" | "gif" | "video"
+          storage_path?: string
+          mime_type?: string | null
+          width?: number | null
+          height?: number | null
+          attribution?: string | null
+          license_status?: "pending" | "licensed" | "owned"
+          license_reference?: string | null
+          is_primary?: boolean
+          is_active?: boolean
+          content_sha256?: string | null
+          source?: string | null
+          source_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exercise_media_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: Record<string, never>
     Functions: {
