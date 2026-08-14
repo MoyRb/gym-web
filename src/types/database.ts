@@ -2,10 +2,14 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 
 // ── Tipos derivados para vistas enriquecidas ──────────────────────────────────
 
-export type WorkoutPlanRow    = Database["public"]["Tables"]["workout_plans"]["Row"]
-export type WorkoutPlanDayRow = Database["public"]["Tables"]["workout_plan_days"]["Row"]
-export type WorkoutPlanExerciseRow = Database["public"]["Tables"]["workout_plan_exercises"]["Row"]
-export type ExerciseRow       = Database["public"]["Tables"]["exercises"]["Row"]
+export type WorkoutPlanRow            = Database["public"]["Tables"]["workout_plans"]["Row"]
+export type WorkoutPlanDayRow         = Database["public"]["Tables"]["workout_plan_days"]["Row"]
+export type WorkoutPlanExerciseRow    = Database["public"]["Tables"]["workout_plan_exercises"]["Row"]
+export type ExerciseRow               = Database["public"]["Tables"]["exercises"]["Row"]
+export type WorkoutSessionRow         = Database["public"]["Tables"]["workout_sessions"]["Row"]
+export type WorkoutSessionExerciseRow = Database["public"]["Tables"]["workout_session_exercises"]["Row"]
+export type WorkoutSetRow             = Database["public"]["Tables"]["workout_sets"]["Row"]
+export type ProgressMeasurementRow    = Database["public"]["Tables"]["progress_measurements"]["Row"]
 
 export interface WorkoutPlanExerciseWithDetails extends WorkoutPlanExerciseRow {
   exercise: Pick<ExerciseRow, "id" | "name" | "body_part" | "equipment" | "target" | "muscle_group">
@@ -17,6 +21,27 @@ export interface WorkoutDayWithExercises extends WorkoutPlanDayRow {
 
 export interface WorkoutPlanWithDays extends WorkoutPlanRow {
   days: WorkoutDayWithExercises[]
+}
+
+export interface WorkoutSessionExerciseWithSets extends WorkoutSessionExerciseRow {
+  exercise: Pick<ExerciseRow, "id" | "name" | "body_part" | "equipment" | "target" | "muscle_group">
+  sets: WorkoutSetRow[]
+}
+
+export interface WorkoutSessionWithExercises extends WorkoutSessionRow {
+  exercises: WorkoutSessionExerciseWithSets[]
+}
+
+export interface WorkoutHistoryEntry {
+  id: string
+  started_at: string
+  completed_at: string | null
+  duration_seconds: number | null
+  status: string
+  plan_day_name: string | null
+  total_sets: number
+  completed_sets: number
+  total_volume_kg: number
 }
 
 export type AppRole = "member" | "admin"
@@ -459,6 +484,174 @@ export interface Database {
           }
         ]
       }
+      workout_sessions: {
+        Row: {
+          id: string
+          user_id: string
+          workout_plan_id: string | null
+          workout_plan_day_id: string | null
+          status: "in_progress" | "completed" | "cancelled"
+          started_at: string
+          completed_at: string | null
+          duration_seconds: number | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          workout_plan_id?: string | null
+          workout_plan_day_id?: string | null
+          status?: "in_progress" | "completed" | "cancelled"
+          started_at?: string
+          completed_at?: string | null
+          duration_seconds?: number | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          status?: "in_progress" | "completed" | "cancelled"
+          completed_at?: string | null
+          duration_seconds?: number | null
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      workout_session_exercises: {
+        Row: {
+          id: string
+          workout_session_id: string
+          workout_plan_exercise_id: string | null
+          exercise_id: string
+          sort_order: number
+          target_sets: number | null
+          target_reps_min: number | null
+          target_reps_max: number | null
+          target_duration_seconds: number | null
+          target_rest_seconds: number | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          workout_session_id: string
+          workout_plan_exercise_id?: string | null
+          exercise_id: string
+          sort_order: number
+          target_sets?: number | null
+          target_reps_min?: number | null
+          target_reps_max?: number | null
+          target_duration_seconds?: number | null
+          target_rest_seconds?: number | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          sort_order?: number
+          target_sets?: number | null
+          target_reps_min?: number | null
+          target_reps_max?: number | null
+          target_duration_seconds?: number | null
+          target_rest_seconds?: number | null
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      workout_sets: {
+        Row: {
+          id: string
+          workout_session_exercise_id: string
+          set_number: number
+          set_type: "warmup" | "working" | "dropset" | "failure"
+          weight_kg: number | null
+          reps: number | null
+          duration_seconds: number | null
+          rir: number | null
+          rpe: number | null
+          completed: boolean
+          completed_at: string | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          workout_session_exercise_id: string
+          set_number: number
+          set_type?: "warmup" | "working" | "dropset" | "failure"
+          weight_kg?: number | null
+          reps?: number | null
+          duration_seconds?: number | null
+          rir?: number | null
+          rpe?: number | null
+          completed?: boolean
+          completed_at?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          set_type?: "warmup" | "working" | "dropset" | "failure"
+          weight_kg?: number | null
+          reps?: number | null
+          duration_seconds?: number | null
+          rir?: number | null
+          rpe?: number | null
+          completed?: boolean
+          completed_at?: string | null
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      progress_measurements: {
+        Row: {
+          id: string
+          user_id: string
+          measured_at: string
+          weight_kg: number | null
+          body_fat_percent: number | null
+          waist_cm: number | null
+          chest_cm: number | null
+          arm_cm: number | null
+          thigh_cm: number | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          measured_at?: string
+          weight_kg?: number | null
+          body_fat_percent?: number | null
+          waist_cm?: number | null
+          chest_cm?: number | null
+          arm_cm?: number | null
+          thigh_cm?: number | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          measured_at?: string
+          weight_kg?: number | null
+          body_fat_percent?: number | null
+          waist_cm?: number | null
+          chest_cm?: number | null
+          arm_cm?: number | null
+          thigh_cm?: number | null
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       exercise_media: {
         Row: {
           id: string
@@ -541,6 +734,13 @@ export interface Database {
           p_days_per_week: number
           p_source: string
           p_days: Json
+        }
+        Returns: string
+      }
+      start_workout_session: {
+        Args: {
+          p_user_id: string
+          p_workout_plan_day_id: string
         }
         Returns: string
       }

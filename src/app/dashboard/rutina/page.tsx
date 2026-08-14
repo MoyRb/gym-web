@@ -10,6 +10,7 @@ import {
   Clock,
   Dumbbell,
   Loader2,
+  Play,
   RefreshCw,
   Target,
   Zap,
@@ -93,17 +94,42 @@ function WorkoutDaySection({
   index: number
   defaultOpen: boolean
 }) {
+  const router = useRouter()
   const [isOpen, setIsOpen] = useState(defaultOpen)
+  const [starting, setStarting] = useState(false)
+  const [startError, setStartError] = useState<string | null>(null)
+
+  const handleStart = async () => {
+    setStarting(true)
+    setStartError(null)
+    try {
+      const res = await fetch("/api/workout/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ workout_plan_day_id: day.id }),
+      })
+      const json = (await res.json()) as { sessionId?: string; error?: string }
+      if (!res.ok || !json.sessionId) {
+        setStartError(json.error ?? "Error iniciando entrenamiento")
+        return
+      }
+      router.push(`/dashboard/rutina/entrenar/${json.sessionId}`)
+    } catch {
+      setStartError("Error de red. Intenta de nuevo.")
+    } finally {
+      setStarting(false)
+    }
+  }
 
   return (
     <Card className="border-border/70">
       <CardHeader className="pb-0">
-        <button
-          type="button"
-          onClick={() => setIsOpen((v) => !v)}
-          className="flex w-full items-center justify-between gap-3 text-left"
-        >
-          <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setIsOpen((v) => !v)}
+            className="flex flex-1 items-center gap-3 text-left"
+          >
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
               {index + 1}
             </span>
@@ -116,13 +142,33 @@ function WorkoutDaySection({
                 {day.description ? `${day.description} · ` : ""}{day.exercises.length} ejercicios
               </p>
             </div>
-          </div>
-          {isOpen ? (
-            <ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground" />
-          ) : (
-            <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
-          )}
-        </button>
+            <span className="ml-auto shrink-0">
+              {isOpen ? (
+                <ChevronUp className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              )}
+            </span>
+          </button>
+
+          <Button
+            size="sm"
+            onClick={() => void handleStart()}
+            disabled={starting}
+            className="shrink-0"
+          >
+            {starting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Play className="h-4 w-4" />
+            )}
+            <span className="ml-1.5 hidden sm:inline">Iniciar</span>
+          </Button>
+        </div>
+
+        {startError && (
+          <p className="mt-2 text-xs text-destructive">{startError}</p>
+        )}
       </CardHeader>
 
       {isOpen && (
