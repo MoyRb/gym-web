@@ -176,7 +176,15 @@ export async function generateWorkoutPlan(
 
   const totalResolved = resolvedDays.reduce((sum, d) => sum + d.exercises.length, 0)
 
-  // 3. Llamar al RPC (transaccional: archiva plan anterior + crea nuevo)
+  // 3. Guard: never create a partial plan with empty days
+  if (emptyDays.length > 0) {
+    const names = emptyDays.map((d) => `"${d.dayName}"`).join(", ")
+    throw new Error(
+      `Template "${template.title}" produced days with no resolved exercises: ${names}. Cannot create partial plan.`,
+    )
+  }
+
+  // 4. Llamar al RPC (transaccional: archiva plan anterior + crea nuevo)
   const { data: planId, error } = await supabase.rpc("create_workout_plan", {
     p_user_id: userId,
     p_name: template.title,

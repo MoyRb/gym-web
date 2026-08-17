@@ -15,7 +15,8 @@
  *
  * Ejercicios genuinamente NO mapeables (excluidos en KNOWN_UNMAPPABLE):
  *   - "hip thrust" / "face pull": no existen en el dataset hasaneyldrm
- *   - Cardio, movilidad, circuitos compuestos: no son ejercicios individuales de gym
+ *   - Movilidad, circuitos compuestos: no son ejercicios individuales de gym
+ *   - Cardio con equivalente en dataset → mapeado a "air bike" (único cardio disponible)
  */
 
 /** Mapeo: nombre_en_template_normalizado → candidatos_en_inglés_en_orden_de_preferencia */
@@ -110,6 +111,9 @@ export const EXERCISE_NAME_MAP: Readonly<Record<string, readonly string[]>> = {
 
   // ── Acondicionamiento / Funcional ─────────────────────────────────────────
   "air bike":                           ["air bike"],
+  // Cardio genérico → air bike como único cardio en el dataset hasaneyldrm
+  "cardio continuo (cinta, bici o elíptica)": ["air bike"],
+  "intervalos extensivos":              ["air bike"],
   // Dataset tiene "farmers walk" (con s)
   "farmer carry":                       ["farmers walk"],
 }
@@ -134,10 +138,8 @@ export function normalizeTemplateName(name: string): string {
  *   - "remo con banda": no hay resistance band row en el dataset
  */
 export const KNOWN_UNMAPPABLE: ReadonlySet<string> = new Set([
-  // Cardio genérico
-  "cardio continuo (cinta, bici o elíptica)",
+  // Cardio genérico sin equivalente útil en el dataset
   "caminata inclinada o bici",
-  "intervalos extensivos",
   "intervalos suaves en remo",
   // Movilidad / calentamiento
   "movilidad de cadera y dorsal",

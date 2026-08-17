@@ -233,7 +233,7 @@ describe("generateWorkoutPlan", () => {
     expect(result.unresolvedExercises[0].reason).toBe("not_in_db")
   })
 
-  it("detecta días vacíos y los reporta en emptyDays", async () => {
+  it("lanza error cuando un día queda sin ejercicios resueltos", async () => {
     mockFindTemplate.mockResolvedValue(BASE_TEMPLATE)
     // Todos los ejercicios del día 2 no resuelven
     let callCount = 0
@@ -245,11 +245,23 @@ describe("generateWorkoutPlan", () => {
     })
 
     const supabase = makeSupabaseMock()
-    const result = await generateWorkoutPlan(supabase, "user-1", PROFILE)
+    await expect(generateWorkoutPlan(supabase, "user-1", PROFILE)).rejects.toThrow(
+      "Cannot create partial plan",
+    )
+  })
 
-    expect(result.emptyDays).toHaveLength(1)
-    expect(result.emptyDays[0].dayNumber).toBe(2)
-    expect(result.emptyDays[0].dayName).toBe("Día 2 · Full Body B")
+  it("no llama al RPC cuando un día queda vacío", async () => {
+    mockFindTemplate.mockResolvedValue(BASE_TEMPLATE)
+    let callCount = 0
+    mockResolveExercise.mockImplementation(async () => {
+      callCount++
+      if (callCount === 3) return null // día 2 vacío
+      return "ex-uuid"
+    })
+
+    const supabase = makeSupabaseMock()
+    await expect(generateWorkoutPlan(supabase, "user-1", PROFILE)).rejects.toThrow()
+    expect(mockRpc).not.toHaveBeenCalled()
   })
 
   it("retorna emptyDays vacío cuando todos los ejercicios resuelven", async () => {

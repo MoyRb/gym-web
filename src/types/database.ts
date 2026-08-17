@@ -718,6 +718,42 @@ export interface Database {
           }
         ]
       }
+      ai_generation_sessions: {
+        Row: {
+          id: string
+          user_id: string
+          draft_plan_id: string | null
+          status: "in_progress" | "completed" | "failed" | "cancelled"
+          total_batches: number
+          completed_batches: number
+          split_json: Json
+          candidates_json: Json
+          error_message: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          draft_plan_id?: string | null
+          status?: "in_progress" | "completed" | "failed" | "cancelled"
+          total_batches: number
+          completed_batches?: number
+          split_json: Json
+          candidates_json: Json
+          error_message?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          draft_plan_id?: string | null
+          status?: "in_progress" | "completed" | "failed" | "cancelled"
+          completed_batches?: number
+          error_message?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: {
@@ -741,6 +777,13 @@ export interface Database {
         Args: {
           p_user_id: string
           p_workout_plan_day_id: string
+        }
+        Returns: string
+      }
+      finalize_ai_draft: {
+        Args: {
+          p_user_id: string
+          p_draft_plan_id: string
         }
         Returns: string
       }

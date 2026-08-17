@@ -102,11 +102,11 @@ describe("normalizeTemplateName", () => {
 // ── KNOWN_UNMAPPABLE ──────────────────────────────────────────────────────────
 
 describe("KNOWN_UNMAPPABLE", () => {
-  it("incluye cardio genérico", () => {
-    expect(EXERCISE_NAME_MAP["cardio continuo (cinta, bici o elíptica)"]).toBeUndefined()
+  it("cardio continuo está mapeado a air bike (no es unmappable)", () => {
+    expect(EXERCISE_NAME_MAP["cardio continuo (cinta, bici o elíptica)"]).toEqual(["air bike"])
   })
 
-  it("incluye movilidad", () => {
+  it("incluye movilidad (sin equivalente en el dataset)", () => {
     expect(EXERCISE_NAME_MAP["movilidad dinámica global"]).toBeUndefined()
   })
 })
