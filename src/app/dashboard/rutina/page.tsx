@@ -18,7 +18,6 @@ import {
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { getUserSafely } from "@/lib/supabase/auth-helpers"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { PageHeader } from "@/components/dashboard/PageHeader"
@@ -92,7 +91,7 @@ function AIGenStatusBanner({ progress, className }: { progress: AIGenProgress; c
   )
 }
 
-// ── Subcomponentes ────────────────────────────────────────────────────────────
+// ── Exercise Row ──────────────────────────────────────────────────────────────
 
 function WorkoutExerciseRow({
   exercise,
@@ -102,35 +101,36 @@ function WorkoutExerciseRow({
   index: number
 }) {
   return (
-    <div className="rounded-lg border bg-muted/20 p-3 text-sm">
-      <div className="flex items-start gap-3">
-        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
-          {index + 1}
-        </span>
-        <div className="flex flex-1 flex-col gap-1.5">
-          <Link
-            href={`/dashboard/exercises/${exercise.exercise_id}`}
-            className="font-medium leading-snug hover:text-primary hover:underline"
-          >
-            {exercise.exercise.name}
-          </Link>
-          <div className="flex flex-wrap gap-1.5">
-            <Badge variant="secondary" className="text-xs">{exercise.sets} series</Badge>
-            <Badge variant="outline" className="text-xs">
-              {formatReps(exercise.reps_min, exercise.reps_max, exercise.duration_seconds)}
-            </Badge>
-            <Badge variant="outline" className="text-xs">
-              Descanso {formatRest(exercise.rest_seconds)}
-            </Badge>
-          </div>
+    <div className="flex items-start gap-3 py-2.5">
+      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary mt-0.5">
+        {index + 1}
+      </span>
+      <div className="flex flex-1 flex-col gap-1 min-w-0">
+        <Link
+          href={`/dashboard/exercises/${exercise.exercise_id}`}
+          className="text-sm font-medium leading-snug hover:text-primary transition-colors"
+        >
+          {exercise.exercise.name}
+        </Link>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+          <span className="tabular font-medium text-foreground/80">
+            {exercise.sets}×{formatReps(exercise.reps_min, exercise.reps_max, exercise.duration_seconds)}
+          </span>
+          <span className="text-border">·</span>
+          <span>{formatRest(exercise.rest_seconds)} descanso</span>
           {exercise.notes && (
-            <p className="text-xs text-muted-foreground">{exercise.notes}</p>
+            <>
+              <span className="text-border">·</span>
+              <span className="italic">{exercise.notes}</span>
+            </>
           )}
         </div>
       </div>
     </div>
   )
 }
+
+// ── Day Section ───────────────────────────────────────────────────────────────
 
 function WorkoutDaySection({
   day,
@@ -169,69 +169,69 @@ function WorkoutDaySection({
   }
 
   return (
-    <Card className="border-border/70">
-      <CardHeader className="pb-0">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setIsOpen((v) => !v)}
-            className="flex flex-1 items-center gap-3 text-left"
-          >
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
-              {index + 1}
-            </span>
-            <div>
-              <div className="flex items-center gap-2">
-                <Dumbbell className="h-4 w-4 text-primary" />
-                <span className="text-sm font-semibold">{day.name}</span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {day.description ? `${day.description} · ` : ""}{day.exercises.length} ejercicios
-              </p>
-            </div>
-            <span className="ml-auto shrink-0">
-              {isOpen ? (
-                <ChevronUp className="h-4 w-4 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
-              )}
-            </span>
-          </button>
+    <div className="rounded-xl border border-border/70 bg-card overflow-hidden">
+      {/* Day header — always visible */}
+      <button
+        type="button"
+        onClick={() => setIsOpen((v) => !v)}
+        className="flex w-full items-center gap-3 px-4 py-4 text-left transition-colors hover:bg-muted/30"
+        aria-expanded={isOpen}
+      >
+        {/* Day number */}
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-sm font-bold text-primary">
+          {index + 1}
+        </span>
 
-          <Button
-            size="sm"
-            onClick={() => void handleStart()}
-            disabled={starting}
-            className="shrink-0"
-          >
-            {starting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Play className="h-4 w-4" />
-            )}
-            <span className="ml-1.5 hidden sm:inline">Iniciar</span>
-          </Button>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold truncate">{day.name}</p>
+          <p className="text-xs text-muted-foreground">
+            {day.description ? `${day.description} · ` : ""}
+            {day.exercises.length} ejercicio{day.exercises.length !== 1 ? "s" : ""}
+          </p>
         </div>
 
-        {startError && (
-          <p className="mt-2 text-xs text-destructive">{startError}</p>
+        {isOpen ? (
+          <ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground" />
+        ) : (
+          <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
         )}
-      </CardHeader>
+      </button>
 
+      {/* Expanded content */}
       {isOpen && (
-        <CardContent className="mt-4 space-y-2">
+        <div className="border-t border-border/50 px-4 pb-4">
+          {startError && (
+            <p className="mt-3 text-xs text-destructive">{startError}</p>
+          )}
+
           {day.exercises.length === 0 ? (
-            <p className="text-xs text-muted-foreground">
+            <p className="mt-4 text-xs text-muted-foreground">
               No se pudieron resolver ejercicios para esta sesión.
             </p>
           ) : (
-            day.exercises.map((exercise, i) => (
-              <WorkoutExerciseRow key={exercise.id} exercise={exercise} index={i} />
-            ))
+            <div className="divide-y divide-border/40">
+              {day.exercises.map((exercise, i) => (
+                <WorkoutExerciseRow key={exercise.id} exercise={exercise} index={i} />
+              ))}
+            </div>
           )}
-        </CardContent>
+
+          {/* Iniciar CTA — full width, below exercises */}
+          <Button
+            className="mt-4 w-full bg-primary text-primary-foreground hover:bg-primary/90"
+            onClick={() => void handleStart()}
+            disabled={starting}
+          >
+            {starting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Play className="mr-2 h-4 w-4" />
+            )}
+            {starting ? "Iniciando..." : "Iniciar entrenamiento"}
+          </Button>
+        </div>
       )}
-    </Card>
+    </div>
   )
 }
 
@@ -242,13 +242,12 @@ type AIGenState = "idle" | "generating" | "success" | "fallback" | "error"
 
 export default function RutinaPage() {
   const router = useRouter()
-  const [state, setState] = useState<PageState>("loading")
-  const [plan, setPlan] = useState<WorkoutPlanWithDays | null>(null)
+  const [state, setState]           = useState<PageState>("loading")
+  const [plan, setPlan]             = useState<WorkoutPlanWithDays | null>(null)
   const [generating, setGenerating] = useState(false)
   const [aiGenState, setAIGenState] = useState<AIGenState>("idle")
-  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [errorMsg, setErrorMsg]     = useState<string | null>(null)
   const [aiProgress, setAIProgress] = useState<AIGenProgress>({ phase: "idle" })
-  /** Pending generation ID recovered from sessionStorage on mount */
   const [pendingGenId, setPendingGenId] = useState<string | null>(null)
 
   const loadPlan = useCallback(async () => {
@@ -263,7 +262,6 @@ export default function RutinaPage() {
         return
       }
 
-      // Cargar plan activo con días y ejercicios + metadata de exercise
       const { data, error } = await supabase
         .from("workout_plans")
         .select(`
@@ -297,7 +295,6 @@ export default function RutinaPage() {
         return
       }
 
-      // Ordenar días y ejercicios por sort_order en cliente
       const sorted: WorkoutPlanWithDays = {
         ...(data as unknown as WorkoutPlanWithDays),
         days: (
@@ -334,17 +331,13 @@ export default function RutinaPage() {
     }
   }, [])
 
-  useEffect(() => {
-    void loadPlan()
-  }, [loadPlan])
+  useEffect(() => { void loadPlan() }, [loadPlan])
 
-  // Recovery: check if a generation was in progress before page reload
   useEffect(() => {
     const stored = sessionStorage.getItem("ai_gen_id")
     if (stored) setPendingGenId(stored)
   }, [])
 
-  // Countdown ticker — decrements every second while in rate-limit phase
   useEffect(() => {
     if (aiProgress.phase !== "batch" || !aiProgress.countdown || aiProgress.countdown <= 0) return
     const timer = setTimeout(() => {
@@ -373,10 +366,8 @@ export default function RutinaPage() {
     }
   }
 
-  /** Runs all remaining batches sequentially, respecting rate limits. */
   const runBatches = async (generationId: string, totalBatches: number, startAt: number) => {
     let completedBatches = startAt
-
     while (completedBatches < totalBatches) {
       setAIProgress((prev) => ({
         ...prev,
@@ -397,7 +388,6 @@ export default function RutinaPage() {
           phase: "batch",
           countdown: retryAfterSeconds,
         }))
-        // Wait for countdown (updated by effect) then retry
         await new Promise<void>((resolve) => setTimeout(resolve, retryAfterSeconds * 1000))
         continue
       }
@@ -417,7 +407,6 @@ export default function RutinaPage() {
     }
   }
 
-  /** Full chunked AI generation flow. */
   const handleGenerateAI = async () => {
     setAIGenState("generating")
     setAIProgress({ phase: "starting" })
@@ -425,7 +414,6 @@ export default function RutinaPage() {
     setPendingGenId(null)
 
     try {
-      // Start generation (processes batch 0)
       const startRes = await fetch("/api/workout/generate-ai/start", { method: "POST" })
       const startData = (await startRes.json()) as {
         error?: string
@@ -443,21 +431,17 @@ export default function RutinaPage() {
       const { generationId, totalBatches = 1 } = startData
       let completedBatches = startData.completedBatches ?? 0
 
-      // Persist for reload recovery
       sessionStorage.setItem("ai_gen_id", generationId)
 
-      // Handle rate limit on start's first batch
       const startRateLimit = startData.rateLimitInfo?.retryAfterSeconds
       if (startRateLimit && startRateLimit > 0 && completedBatches === 0) {
         setAIProgress({ phase: "batch", generationId, totalBatches, completedBatches, countdown: startRateLimit })
         await new Promise<void>((resolve) => setTimeout(resolve, startRateLimit * 1000))
-        completedBatches = 0 // retry batch 0 via /next
+        completedBatches = 0
       }
 
-      // Process remaining batches (including batch 0 retry if needed)
       await runBatches(generationId, totalBatches, completedBatches)
 
-      // Finalize
       setAIProgress({ phase: "finalizing", generationId })
       const finalRes = await fetch(`/api/workout/generate-ai/${generationId}/finalize`, { method: "POST" })
       const finalData = (await finalRes.json()) as { error?: string; planId?: string }
@@ -479,7 +463,6 @@ export default function RutinaPage() {
     }
   }
 
-  /** Resume a generation session that was left in progress (e.g., after page refresh). */
   const handleResumeGeneration = async (genId: string) => {
     setPendingGenId(null)
     setAIGenState("generating")
@@ -487,9 +470,6 @@ export default function RutinaPage() {
     setErrorMsg(null)
 
     try {
-      // Fetch session state from server to know how many batches are left
-      // We re-use the /next endpoint which checks completed_batches server-side
-      // and returns done:true if already complete
       const checkRes = await fetch(`/api/workout/generate-ai/${genId}/next`, { method: "POST" })
 
       if (checkRes.status === 404 || checkRes.status === 403) {
@@ -506,7 +486,6 @@ export default function RutinaPage() {
       }
 
       if (checkData.done) {
-        // All batches done, just finalize
         setAIProgress({ phase: "finalizing", generationId: genId })
         const finalRes = await fetch(`/api/workout/generate-ai/${genId}/finalize`, { method: "POST" })
         const finalData = (await finalRes.json()) as { error?: string; planId?: string }
@@ -514,7 +493,6 @@ export default function RutinaPage() {
       } else if (!checkRes.ok || checkData.error) {
         throw new Error(checkData.error ?? "Error al reanudar")
       } else {
-        // Continue from where we left off
         const totalBatches = checkData.totalBatches ?? 1
         const completedBatches = checkData.completedBatches ?? 0
         await runBatches(genId, totalBatches, completedBatches)
@@ -538,10 +516,9 @@ export default function RutinaPage() {
     }
   }
 
-  /** Derived loading flag — true while any AI generation is running */
   const generatingAI = aiProgress.phase !== "idle" && aiProgress.phase !== "done" && aiProgress.phase !== "error"
 
-  // ── Estados ───────────────────────────────────────────────────────────────
+  // ── Estados ────────────────────────────────────────────────────────────────
 
   if (state === "loading") {
     return (
@@ -554,15 +531,13 @@ export default function RutinaPage() {
   if (state === "error") {
     return (
       <div className="flex flex-col gap-6">
-        <PageHeader title="Mi rutina" backHref="/dashboard" backLabel="Volver al dashboard" />
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-sm text-destructive">{errorMsg ?? "Error desconocido"}</p>
-            <Button variant="outline" className="mt-4" onClick={() => void loadPlan()}>
-              Reintentar
-            </Button>
-          </CardContent>
-        </Card>
+        <PageHeader title="Mi plan" backHref="/dashboard" backLabel="Inicio" />
+        <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-6 text-center">
+          <p className="text-sm text-destructive">{errorMsg ?? "Error desconocido"}</p>
+          <Button variant="outline" className="mt-4" onClick={() => void loadPlan()}>
+            Reintentar
+          </Button>
+        </div>
       </div>
     )
   }
@@ -570,69 +545,76 @@ export default function RutinaPage() {
   if (state === "no_plan") {
     return (
       <div className="flex flex-col gap-6">
-        <PageHeader title="Mi rutina" backHref="/dashboard" backLabel="Volver al dashboard" />
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Dumbbell className="mx-auto h-12 w-12 text-muted-foreground/40 mb-4" />
-            <h2 className="text-lg font-semibold mb-2">Aún no tienes una rutina</h2>
-            <p className="text-sm text-muted-foreground mb-6 max-w-xs mx-auto">
-              Genera tu plan personalizado basado en tu objetivo, nivel y días disponibles.
+        <PageHeader title="Mi plan" backHref="/dashboard" backLabel="Inicio" />
+
+        {/* Pending recovery banner */}
+        {pendingGenId && aiProgress.phase === "idle" && (
+          <div className="rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm">
+            <p className="text-muted-foreground">Tienes una generación en curso.</p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2"
+              onClick={() => void handleResumeGeneration(pendingGenId)}
+            >
+              Continuar generación
+            </Button>
+          </div>
+        )}
+
+        {/* Empty state CTA */}
+        <div className="flex flex-col items-center gap-6 rounded-xl border border-border bg-card py-16 px-6 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+            <Sparkles className="h-8 w-8 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold">Aún no tienes un plan</h2>
+            <p className="mt-2 max-w-xs text-sm text-muted-foreground">
+              La IA analiza tu objetivo, nivel y días disponibles para crear un plan personalizado.
             </p>
-            {errorMsg && (
-              <p className="text-xs text-destructive mb-4">{errorMsg}</p>
-            )}
-            <AIGenStatusBanner progress={aiProgress} />
-            {pendingGenId && aiProgress.phase === "idle" && (
-              <div className="mb-4 rounded-lg border bg-muted/30 px-4 py-3 text-sm">
-                <p className="text-muted-foreground">Tienes una generación en curso.</p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-2"
-                  onClick={() => void handleResumeGeneration(pendingGenId)}
-                >
-                  Continuar generación
-                </Button>
-              </div>
-            )}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Button
-                size="lg"
-                onClick={() => void handleGenerateAI()}
-                disabled={generatingAI || generating}
-              >
-                {generatingAI ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    <AIGenButtonLabel progress={aiProgress} />
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    Generar rutina con IA
-                  </>
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => void handleGenerate()}
-                disabled={generating || generatingAI}
-              >
-                {generating ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generando...
-                  </>
-                ) : (
-                  <>
-                    <Zap className="mr-2 h-4 w-4" />
-                    Rutina base
-                  </>
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+
+          {errorMsg && (
+            <p className="text-xs text-destructive">{errorMsg}</p>
+          )}
+
+          <AIGenStatusBanner progress={aiProgress} />
+
+          <div className="flex flex-col gap-3 w-full max-w-xs sm:flex-row sm:max-w-none sm:justify-center">
+            <Button
+              size="lg"
+              className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+              onClick={() => void handleGenerateAI()}
+              disabled={generatingAI || generating}
+            >
+              {generatingAI ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <AIGenButtonLabel progress={aiProgress} />
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4" />
+                  Generar con IA
+                </>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
+              className="gap-2"
+              onClick={() => void handleGenerate()}
+              disabled={generating || generatingAI}
+            >
+              {generating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Zap className="h-4 w-4" />
+              )}
+              {generating ? "Generando..." : "Rutina base"}
+            </Button>
+          </div>
+        </div>
       </div>
     )
   }
@@ -641,105 +623,123 @@ export default function RutinaPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Mi rutina" backHref="/dashboard" backLabel="Volver al dashboard" />
+      <PageHeader title="Mi plan" backHref="/dashboard" backLabel="Inicio" />
 
-      {/* Fallback notice (transient — only shown after AI gen in this session) */}
+      {/* Fallback notice */}
       {aiGenState === "fallback" && (
         <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
           Se generó una rutina base porque el generador inteligente no estuvo disponible.
         </div>
       )}
 
-      {/* Plan header */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <CardTitle className="text-xl">{plan.name}</CardTitle>
-                {plan.source === "ai" && (
-                  <Badge className="text-xs bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">
-                    <Sparkles className="mr-1 h-2.5 w-2.5" />
-                    IA
-                  </Badge>
-                )}
-              </div>
-              <p className="mt-0.5 text-xs text-muted-foreground">Plan v{plan.version}</p>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <Button
-                size="sm"
-                onClick={() => void handleGenerateAI()}
-                disabled={generatingAI || generating}
-              >
-                {generatingAI ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Sparkles className="h-4 w-4" />
-                )}
-                <span className="ml-1.5 hidden sm:inline">
-                  {generatingAI ? <AIGenButtonLabel progress={aiProgress} /> : "Nueva con IA"}
+      {/* ── Plan Header ── */}
+      <div className="rounded-xl border border-border bg-card p-5">
+        {/* Name + AI badge + actions */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-2xl font-bold leading-tight">{plan.name}</h2>
+              {plan.source === "ai" && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary border border-primary/20">
+                  <Sparkles className="h-2.5 w-2.5" />
+                  IA
                 </span>
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => void handleGenerate()}
-                disabled={generating || generatingAI}
+              )}
+            </div>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Plan v{plan.version}
+            </p>
+          </div>
+
+          {/* Regenerate actions */}
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              size="sm"
+              className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
+              onClick={() => void handleGenerateAI()}
+              disabled={generatingAI || generating}
+            >
+              {generatingAI ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Sparkles className="h-3.5 w-3.5" />
+              )}
+              <span className="hidden sm:inline">
+                {generatingAI ? <AIGenButtonLabel progress={aiProgress} /> : "Nueva con IA"}
+              </span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => void handleGenerate()}
+              disabled={generating || generatingAI}
+            >
+              {generating ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <RefreshCw className="h-3.5 w-3.5" />
+              )}
+              <span className="hidden sm:inline">Base</span>
+            </Button>
+          </div>
+        </div>
+
+        {generatingAI && <AIGenStatusBanner progress={aiProgress} className="mt-2" />}
+
+        {/* Metadata chips */}
+        <div className="mt-4 flex flex-wrap gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1 text-xs font-medium">
+            <Target className="h-3 w-3 text-primary" />
+            {getObjetivoLabel(plan.goal as Parameters<typeof getObjetivoLabel>[0])}
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1 text-xs font-medium">
+            {getExperienciaLabel(plan.experience as Parameters<typeof getExperienciaLabel>[0])}
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1 text-xs font-medium">
+            <Calendar className="h-3 w-3 text-muted-foreground" />
+            {plan.days_per_week} días/semana
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1 text-xs font-medium">
+            <Clock className="h-3 w-3 text-muted-foreground" />
+            {plan.days.length} sesiones
+          </span>
+        </div>
+
+        {/* Weekly structure overview */}
+        <div className="mt-5 border-t border-border/50 pt-4">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Estructura semanal
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {plan.days.map((day, i) => (
+              <div
+                key={day.id}
+                className="flex items-center gap-3 rounded-lg border border-border/60 bg-background/60 px-3 py-2.5"
               >
-                {generating ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-4 w-4" />
-                )}
-                <span className="ml-1.5 hidden sm:inline">Base</span>
-              </Button>
-            </div>
-          </div>
-
-          {generatingAI && <AIGenStatusBanner progress={aiProgress} className="mt-2" />}
-
-          <div className="flex flex-wrap gap-2 mt-3">
-            <Badge variant="secondary">
-              <Target className="mr-1 h-3 w-3" />
-              {getObjetivoLabel(plan.goal as Parameters<typeof getObjetivoLabel>[0])}
-            </Badge>
-            <Badge variant="outline">
-              {getExperienciaLabel(plan.experience as Parameters<typeof getExperienciaLabel>[0])}
-            </Badge>
-            <Badge variant="outline">
-              <Calendar className="mr-1 h-3 w-3" />
-              {plan.days_per_week} días/semana
-            </Badge>
-            <Badge variant="outline">
-              <Clock className="mr-1 h-3 w-3" />
-              {plan.days.length} sesiones
-            </Badge>
-          </div>
-        </CardHeader>
-
-        {/* Resumen de sesiones */}
-        <CardContent>
-          <div className="rounded-xl border bg-muted/20 p-4">
-            <h3 className="mb-3 text-sm font-semibold">Estructura semanal</h3>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {plan.days.map((day, i) => (
-                <div key={day.id} className="rounded-lg border bg-background p-3">
-                  <p className="text-xs font-medium text-primary">Sesión {i + 1}</p>
-                  <p className="text-sm font-semibold">{day.name}</p>
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">
+                  {i + 1}
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-xs font-semibold">{day.name}</p>
                   {day.description && (
-                    <p className="mt-1 text-xs text-muted-foreground">{day.description}</p>
+                    <p className="truncate text-[11px] text-muted-foreground">{day.description}</p>
                   )}
-                  <p className="mt-2 text-xs text-muted-foreground">{day.exercises.length} ejercicios</p>
                 </div>
-              ))}
-            </div>
+                <span className="ml-auto shrink-0 text-[11px] text-muted-foreground tabular">
+                  {day.exercises.length} ej.
+                </span>
+              </div>
+            ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* Días con ejercicios */}
-      <div className="grid gap-4">
+      {/* ── Day sections ── */}
+      <div className="flex flex-col gap-3">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          Sesiones de entrenamiento
+        </p>
         {plan.days.map((day, i) => (
           <WorkoutDaySection key={day.id} day={day} index={i} defaultOpen={i === 0} />
         ))}

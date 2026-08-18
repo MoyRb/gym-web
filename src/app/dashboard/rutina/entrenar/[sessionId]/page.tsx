@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef, memo } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import {
+  ArrowLeft,
   CheckCircle2,
   ChevronRight,
   Clock,
@@ -17,8 +18,6 @@ import {
 import { createClient } from "@/lib/supabase/client"
 import { getUserSafely } from "@/lib/supabase/auth-helpers"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import type { WorkoutSessionWithExercises, WorkoutSetRow } from "@/types/database"
 
 // ── Formatters ────────────────────────────────────────────────────────────────
@@ -44,7 +43,7 @@ function formatTarget(
   return "—"
 }
 
-// ── Rest Timer ────────────────────────────────────────────────────────────────
+// ── Rest Timer — FORGE fullscreen ─────────────────────────────────────────────
 
 function RestTimer({
   initialSeconds,
@@ -74,34 +73,57 @@ function RestTimer({
   const reset = () => setRemaining(initialSeconds)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 backdrop-blur-sm">
-      <div className="flex flex-col items-center gap-6 p-8">
-        <p className="text-sm font-medium text-muted-foreground uppercase tracking-widest">Descanso</p>
-        <span className="text-7xl font-bold tabular-nums text-primary">
+    <div className="fixed inset-0 z-[70] flex flex-col items-center justify-center bg-background">
+      {/* Ambient red glow */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute left-1/2 top-[38%] h-[45vh] w-[45vw] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/[0.10] blur-[100px]" />
+      </div>
+
+      <div className="relative flex flex-col items-center gap-6 px-8">
+        <p className="text-xs font-semibold uppercase tracking-[0.25em] text-muted-foreground">
+          Tiempo de descanso
+        </p>
+
+        {/* Big timer — the protagonist */}
+        <span className="tabular font-black leading-none text-primary"
+          style={{ fontSize: "clamp(72px, 18vw, 120px)" }}
+        >
           {formatDuration(remaining)}
         </span>
-        <div className="flex gap-3">
+
+        {/* Progress arc alternative — progress bar */}
+        <div className="h-0.5 w-48 overflow-hidden rounded-full bg-muted">
+          <div
+            className="h-full rounded-full bg-primary transition-all duration-1000"
+            style={{ width: `${Math.max(0, (remaining / initialSeconds) * 100)}%` }}
+          />
+        </div>
+
+        <div className="flex flex-wrap justify-center gap-2">
           <Button variant="outline" size="sm" onClick={add30}>
-            <Plus className="h-4 w-4 mr-1" />
+            <Plus className="mr-1 h-4 w-4" />
             +30s
           </Button>
           <Button variant="outline" size="sm" onClick={reset}>
-            <RotateCcw className="h-4 w-4 mr-1" />
+            <RotateCcw className="mr-1 h-4 w-4" />
             Reiniciar
           </Button>
-          <Button variant="default" size="sm" onClick={onDone}>
-            <SkipForward className="h-4 w-4 mr-1" />
-            Saltar
-          </Button>
         </div>
+
+        <button
+          type="button"
+          onClick={onDone}
+          className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground/60 transition-colors hover:text-foreground"
+        >
+          <SkipForward className="h-4 w-4" />
+          Saltar descanso
+        </button>
       </div>
     </div>
   )
 }
 
-// ── Exercise GIF ──────────────────────────────────────────────────────────────
-// Carga el GIF via API route server-side (signed URL). El service_role nunca
-// llega al cliente. Hace UN fetch por ejercicio al montar el card.
+// ── Exercise GIF — large, prominent ──────────────────────────────────────────
 
 const ExerciseGif = memo(function ExerciseGif({
   exerciseId,
@@ -110,8 +132,8 @@ const ExerciseGif = memo(function ExerciseGif({
   exerciseId: string
   exerciseName: string
 }) {
-  const [status, setStatus]   = useState<"loading" | "ready" | "none">("loading")
-  const [gifUrl, setGifUrl]   = useState<string | null>(null)
+  const [status, setStatus] = useState<"loading" | "ready" | "none">("loading")
+  const [gifUrl, setGifUrl] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -134,7 +156,7 @@ const ExerciseGif = memo(function ExerciseGif({
     return (
       <div
         aria-hidden="true"
-        className="mx-auto mt-3 h-40 w-40 rounded-lg bg-muted animate-pulse"
+        className="mx-auto mt-4 aspect-square w-full max-w-[240px] sm:max-w-[272px] rounded-xl bg-muted animate-pulse"
       />
     )
   }
@@ -142,19 +164,22 @@ const ExerciseGif = memo(function ExerciseGif({
   if (status === "none" || !gifUrl) return null
 
   return (
-    <div className="mt-3 flex justify-center">
-      {/* next/image no soporta GIFs animados correctamente — se usa <img> */}
+    <div className="mt-4 flex flex-col items-center gap-1">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={gifUrl}
         alt={`Demostración de ${exerciseName}`}
-        className="h-40 w-40 rounded-lg border border-border object-contain bg-muted/30 motion-reduce:hidden"
+        className="aspect-square w-full max-w-[240px] sm:max-w-[272px] rounded-xl border border-border/60 object-contain bg-muted/20 motion-reduce:hidden"
       />
+      {/* Reduced motion fallback */}
+      <div className="hidden motion-reduce:flex aspect-square w-full max-w-[240px] items-center justify-center rounded-xl bg-muted/20 border border-border/60">
+        <p className="text-xs text-muted-foreground text-center px-6">{exerciseName}</p>
+      </div>
     </div>
   )
 })
 
-// ── Set Row ───────────────────────────────────────────────────────────────────
+// ── Set Row — touch-friendly ──────────────────────────────────────────────────
 
 interface SetState {
   weight_kg: string
@@ -163,6 +188,9 @@ interface SetState {
   completed: boolean
   saving: boolean
 }
+
+const INPUT_CLS =
+  "h-11 w-full rounded-md border border-input bg-background px-2 text-center text-base focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50 sm:text-sm"
 
 function SetRow({
   set,
@@ -177,72 +205,71 @@ function SetRow({
 }) {
   return (
     <div
-      className={`grid grid-cols-[2rem_1fr_1fr_1fr_2.5rem] items-center gap-1.5 rounded-lg px-2 py-2 ${
-        localState.completed ? "bg-primary/5" : "bg-muted/30"
+      className={`grid grid-cols-[2.5rem_1fr_1fr_1fr_2.75rem] items-center gap-2 rounded-lg px-2 py-1.5 transition-colors ${
+        localState.completed ? "bg-primary/[0.07]" : "bg-muted/30"
       }`}
     >
       {/* Set number */}
-      <span className="text-center text-xs font-semibold text-muted-foreground">
+      <span
+        className={`text-center text-xs font-bold ${
+          localState.completed ? "text-primary" : "text-muted-foreground"
+        }`}
+      >
         {set.set_number}
       </span>
 
       {/* Weight */}
-      <div className="relative">
-        <input
-          type="number"
-          inputMode="decimal"
-          placeholder="kg"
-          min={0}
-          step={0.5}
-          value={localState.weight_kg}
-          onChange={(e) => onChange("weight_kg", e.target.value)}
-          disabled={localState.completed}
-          className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-center text-sm focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
-        />
-      </div>
+      <input
+        type="number"
+        inputMode="decimal"
+        placeholder="kg"
+        min={0}
+        step={0.5}
+        value={localState.weight_kg}
+        onChange={(e) => onChange("weight_kg", e.target.value)}
+        disabled={localState.completed}
+        className={INPUT_CLS}
+      />
 
       {/* Reps */}
-      <div>
-        <input
-          type="number"
-          inputMode="numeric"
-          placeholder="reps"
-          min={1}
-          value={localState.reps}
-          onChange={(e) => onChange("reps", e.target.value)}
-          disabled={localState.completed}
-          className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-center text-sm focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
-        />
-      </div>
+      <input
+        type="number"
+        inputMode="numeric"
+        placeholder="reps"
+        min={1}
+        value={localState.reps}
+        onChange={(e) => onChange("reps", e.target.value)}
+        disabled={localState.completed}
+        className={INPUT_CLS}
+      />
 
       {/* RIR */}
-      <div>
-        <input
-          type="number"
-          inputMode="numeric"
-          placeholder="RIR"
-          min={0}
-          max={10}
-          value={localState.rir}
-          onChange={(e) => onChange("rir", e.target.value)}
-          disabled={localState.completed}
-          className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-center text-sm focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
-        />
-      </div>
+      <input
+        type="number"
+        inputMode="numeric"
+        placeholder="RIR"
+        min={0}
+        max={10}
+        value={localState.rir}
+        onChange={(e) => onChange("rir", e.target.value)}
+        disabled={localState.completed}
+        className={INPUT_CLS}
+      />
 
-      {/* Complete button */}
+      {/* Complete button — 44px touch target */}
       <button
         type="button"
         onClick={onComplete}
         disabled={localState.saving}
-        className="flex h-8 w-8 items-center justify-center rounded-full transition-colors"
+        className="flex h-11 w-11 items-center justify-center rounded-full transition-colors"
+        aria-label={localState.completed ? "Serie completada" : "Completar serie"}
       >
         {localState.saving ? (
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
         ) : localState.completed ? (
-          <CheckCircle2 className="h-5 w-5 text-primary" />
+          <CheckCircle2 className="h-6 w-6 text-primary" />
         ) : (
-          <span className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-muted-foreground/40 text-muted-foreground/40">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-muted-foreground/30 transition-colors hover:border-primary/50">
             <span className="sr-only">Completar</span>
           </span>
         )}
@@ -268,23 +295,21 @@ function ExerciseCard({
   const allDone = completedCount === exercise.sets.length && exercise.sets.length > 0
 
   return (
-    <Card className={`border-border/70 ${allDone ? "opacity-80" : ""}`}>
-      <CardHeader className="pb-3">
-        <div className="flex items-start gap-3">
+    <div
+      className={`overflow-hidden rounded-xl border border-border/70 bg-card transition-opacity ${
+        allDone ? "opacity-75" : ""
+      }`}
+    >
+      {/* Card header — name, target, GIF */}
+      <div className="px-4 pt-4 pb-0">
+        <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <Link
-                href={`/dashboard/exercises/${exercise.exercise_id}`}
-                className="text-sm font-semibold hover:text-primary hover:underline truncate"
-              >
-                {exercise.exercise.name}
-              </Link>
-              {allDone && (
-                <Badge variant="secondary" className="text-xs shrink-0">
-                  <CheckCircle2 className="mr-1 h-3 w-3" /> Listo
-                </Badge>
-              )}
-            </div>
+            <Link
+              href={`/dashboard/exercises/${exercise.exercise_id}`}
+              className="text-base font-bold leading-snug transition-colors hover:text-primary line-clamp-2"
+            >
+              {exercise.exercise.name}
+            </Link>
             <p className="mt-0.5 text-xs text-muted-foreground">
               {exercise.target_sets ?? "?"} series ·{" "}
               {formatTarget(
@@ -297,54 +322,69 @@ function ExerciseCard({
                 : ""}
             </p>
           </div>
-          <Link
-            href={`/dashboard/exercises/${exercise.exercise_id}`}
-            className="shrink-0 text-muted-foreground hover:text-foreground"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Link>
+
+          {allDone ? (
+            <span className="flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary">
+              <CheckCircle2 className="h-3 w-3" />
+              Listo
+            </span>
+          ) : (
+            <Link
+              href={`/dashboard/exercises/${exercise.exercise_id}`}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              aria-label={`Ver ${exercise.exercise.name}`}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Link>
+          )}
         </div>
 
-        {/* GIF de demostración — visible para entender el movimiento */}
+        {/* GIF — the protagonist */}
         <ExerciseGif
           exerciseId={exercise.exercise_id}
           exerciseName={exercise.exercise.name}
         />
+      </div>
 
+      {/* Set logger */}
+      <div className="mt-4 border-t border-border/50 px-4 pb-4 pt-3">
         {/* Column headers */}
-        <div className="mt-3 grid grid-cols-[2rem_1fr_1fr_1fr_2.5rem] gap-1.5 px-2">
-          <span className="text-center text-[10px] font-medium uppercase tracking-wider text-muted-foreground">#</span>
-          <span className="text-center text-[10px] font-medium uppercase tracking-wider text-muted-foreground">kg</span>
-          <span className="text-center text-[10px] font-medium uppercase tracking-wider text-muted-foreground">reps</span>
-          <span className="text-center text-[10px] font-medium uppercase tracking-wider text-muted-foreground">RIR</span>
-          <span />
+        <div className="mb-2 grid grid-cols-[2.5rem_1fr_1fr_1fr_2.75rem] gap-2 px-2">
+          {["#", "kg", "reps", "RIR", ""].map((h, i) => (
+            <span
+              key={i}
+              className="text-center text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+            >
+              {h}
+            </span>
+          ))}
         </div>
-      </CardHeader>
 
-      <CardContent className="space-y-1.5 pt-0">
-        {exercise.sets.map((set) => (
-          <SetRow
-            key={set.id}
-            set={set}
-            localState={
-              setStates.get(set.id) ?? {
-                weight_kg: set.weight_kg != null ? String(set.weight_kg) : "",
-                reps:      set.reps      != null ? String(set.reps)      : "",
-                rir:       set.rir       != null ? String(set.rir)       : "",
-                completed: set.completed,
-                saving:    false,
+        <div className="space-y-1.5">
+          {exercise.sets.map((set) => (
+            <SetRow
+              key={set.id}
+              set={set}
+              localState={
+                setStates.get(set.id) ?? {
+                  weight_kg: set.weight_kg != null ? String(set.weight_kg) : "",
+                  reps:      set.reps      != null ? String(set.reps)      : "",
+                  rir:       set.rir       != null ? String(set.rir)       : "",
+                  completed: set.completed,
+                  saving:    false,
+                }
               }
-            }
-            onChange={(field, value) => onSetChange(set.id, field, value)}
-            onComplete={() => onSetComplete(set.id)}
-          />
-        ))}
-      </CardContent>
-    </Card>
+              onChange={(field, value) => onSetChange(set.id, field, value)}
+              onComplete={() => onSetComplete(set.id)}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
   )
 }
 
-// ── Summary ───────────────────────────────────────────────────────────────────
+// ── Workout Summary ───────────────────────────────────────────────────────────
 
 function WorkoutSummary({
   session,
@@ -369,39 +409,48 @@ function WorkoutSummary({
     return acc
   }, 0)
 
+  const stats = [
+    {
+      label: "Duración",
+      value: session.duration_seconds ? formatDuration(session.duration_seconds) : "—",
+    },
+    { label: "Series",       value: completedSets.length },
+    { label: "Repeticiones", value: totalReps },
+    { label: "Volumen",      value: `${Math.round(totalVolume)} kg` },
+  ]
+
   return (
-    <div className="flex flex-col items-center gap-6 py-12 text-center">
-      <CheckCircle2 className="h-16 w-16 text-primary" />
+    <div className="flex flex-col items-center gap-8 px-4 py-16 text-center">
+      {/* Check icon */}
+      <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10">
+        <CheckCircle2 className="h-10 w-10 text-primary" />
+      </div>
+
       <div>
-        <h2 className="text-2xl font-bold">Entrenamiento completado</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <h2 className="text-2xl font-bold">¡Entrenamiento completado!</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
           {new Date(session.started_at).toLocaleDateString("es-ES", {
-            weekday: "long", day: "numeric", month: "long",
+            weekday: "long",
+            day: "numeric",
+            month: "long",
           })}
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 w-full max-w-xs">
-        <div className="rounded-xl border bg-muted/20 p-4">
-          <p className="text-2xl font-bold">{session.duration_seconds ? formatDuration(session.duration_seconds) : "—"}</p>
-          <p className="text-xs text-muted-foreground mt-1">Duración</p>
-        </div>
-        <div className="rounded-xl border bg-muted/20 p-4">
-          <p className="text-2xl font-bold">{completedSets.length}</p>
-          <p className="text-xs text-muted-foreground mt-1">Series</p>
-        </div>
-        <div className="rounded-xl border bg-muted/20 p-4">
-          <p className="text-2xl font-bold">{totalReps}</p>
-          <p className="text-xs text-muted-foreground mt-1">Repeticiones</p>
-        </div>
-        <div className="rounded-xl border bg-muted/20 p-4">
-          <p className="text-2xl font-bold">{Math.round(totalVolume)} kg</p>
-          <p className="text-xs text-muted-foreground mt-1">Volumen</p>
-        </div>
+      {/* Stats 2×2 */}
+      <div className="grid w-full max-w-xs grid-cols-2 gap-3">
+        {stats.map(({ label, value }) => (
+          <div key={label} className="rounded-xl border border-border bg-card p-4">
+            <p className="tabular text-2xl font-bold">{value}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{label}</p>
+          </div>
+        ))}
       </div>
 
-      <div className="flex flex-col gap-3 w-full max-w-xs">
-        <Button onClick={() => router.push("/dashboard/progress")}>
+      <div className="flex w-full max-w-xs flex-col gap-3">
+        <Button className="bg-primary text-primary-foreground hover:bg-primary/90"
+          onClick={() => router.push("/dashboard/progress")}
+        >
           Ver mi progreso
         </Button>
         <Button variant="outline" onClick={() => router.push("/dashboard/rutina")}>
@@ -421,16 +470,17 @@ export default function TrainingPage() {
   const router = useRouter()
   const sessionId = typeof params.sessionId === "string" ? params.sessionId : ""
 
-  const [pageState, setPageState] = useState<PageState>("loading")
-  const [session, setSession] = useState<WorkoutSessionWithExercises | null>(null)
-  const [errorMsg, setErrorMsg] = useState<string | null>(null)
-  const [setStates, setSetStates] = useState<Map<string, SetState>>(new Map())
-  const [elapsed, setElapsed] = useState(0)
-  const [restTimer, setRestTimer] = useState<{ active: boolean; seconds: number } | null>(null)
-  const [finishing, setFinishing] = useState(false)
+  const [pageState, setPageState]     = useState<PageState>("loading")
+  const [session, setSession]         = useState<WorkoutSessionWithExercises | null>(null)
+  const [errorMsg, setErrorMsg]       = useState<string | null>(null)
+  const [setStates, setSetStates]     = useState<Map<string, SetState>>(new Map())
+  const [elapsed, setElapsed]         = useState(0)
+  const [restTimer, setRestTimer]     = useState<{ active: boolean; seconds: number } | null>(null)
+  const [finishing, setFinishing]     = useState(false)
   const [confirmFinish, setConfirmFinish] = useState(false)
 
-  // Load session
+  // ── Load session ────────────────────────────────────────────────────────────
+
   const loadSession = useCallback(async () => {
     try {
       const supabase = createClient()
@@ -470,7 +520,6 @@ export default function TrainingPage() {
         return
       }
 
-      // Shape data
       const raw = data as unknown as {
         workout_session_exercises: Array<{
           exercises: WorkoutSessionWithExercises["exercises"][number]["exercise"]
@@ -487,15 +536,12 @@ export default function TrainingPage() {
           .map((ex) => ({
             ...(ex as unknown as WorkoutSessionWithExercises["exercises"][number]),
             exercise: ex.exercises,
-            sets: (ex.workout_sets ?? []).sort(
-              (a, b) => a.set_number - b.set_number,
-            ),
+            sets: (ex.workout_sets ?? []).sort((a, b) => a.set_number - b.set_number),
           })),
       }
 
       setSession(shaped)
 
-      // Init local set states
       const initStates = new Map<string, SetState>()
       for (const ex of shaped.exercises) {
         for (const s of ex.sets) {
@@ -521,11 +567,10 @@ export default function TrainingPage() {
     }
   }, [sessionId])
 
-  useEffect(() => {
-    void loadSession()
-  }, [loadSession])
+  useEffect(() => { void loadSession() }, [loadSession])
 
-  // Elapsed timer
+  // ── Elapsed timer ───────────────────────────────────────────────────────────
+
   useEffect(() => {
     if (pageState !== "training" || !session) return
     const start = new Date(session.started_at).getTime()
@@ -535,7 +580,7 @@ export default function TrainingPage() {
     return () => clearInterval(id)
   }, [pageState, session])
 
-  // ── Set handlers ──────────────────────────────────────────────────────────
+  // ── Set handlers ────────────────────────────────────────────────────────────
 
   const handleSetChange = (
     setId: string,
@@ -554,7 +599,6 @@ export default function TrainingPage() {
     const state = setStates.get(setId)
     if (!state || state.completed || state.saving) return
 
-    // Optimistic update
     setSetStates((prev) => {
       const next = new Map(prev)
       const cur = next.get(setId)
@@ -570,17 +614,13 @@ export default function TrainingPage() {
     }
 
     try {
-      const res = await fetch(
-        `/api/workout/sessions/${sessionId}/sets/${setId}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        },
-      )
+      const res = await fetch(`/api/workout/sessions/${sessionId}/sets/${setId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
 
       if (!res.ok) {
-        // Roll back
         setSetStates((prev) => {
           const next = new Map(prev)
           const cur = next.get(setId)
@@ -610,7 +650,7 @@ export default function TrainingPage() {
     }
   }
 
-  // ── Finish / Cancel ───────────────────────────────────────────────────────
+  // ── Finish / Cancel ─────────────────────────────────────────────────────────
 
   const handleFinish = async (action: "complete" | "cancel") => {
     if (finishing) return
@@ -622,8 +662,6 @@ export default function TrainingPage() {
         body: JSON.stringify({ action }),
       })
       if (!res.ok) return
-
-      // Reload to get updated session
       await loadSession()
     } finally {
       setFinishing(false)
@@ -631,11 +669,11 @@ export default function TrainingPage() {
     }
   }
 
-  // ── Render states ─────────────────────────────────────────────────────────
+  // ── Render states ───────────────────────────────────────────────────────────
 
   if (pageState === "loading") {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
+      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
@@ -643,15 +681,12 @@ export default function TrainingPage() {
 
   if (pageState === "error") {
     return (
-      <div className="flex flex-col gap-6">
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-sm text-destructive">{errorMsg}</p>
-            <Button variant="outline" className="mt-4" onClick={() => router.push("/dashboard/rutina")}>
-              Volver a mi rutina
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center gap-4 bg-background px-4">
+        <p className="text-sm text-destructive text-center">{errorMsg}</p>
+        <Button variant="outline" onClick={() => router.push("/dashboard/rutina")}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Volver a mi rutina
+        </Button>
       </div>
     )
   }
@@ -660,23 +695,26 @@ export default function TrainingPage() {
 
   if (pageState === "summary") {
     return (
-      <div className="mx-auto max-w-lg">
-        <WorkoutSummary session={session} setStates={setStates} />
+      <div className="fixed inset-0 z-[60] overflow-y-auto bg-background">
+        <div className="mx-auto max-w-lg">
+          <WorkoutSummary session={session} setStates={setStates} />
+        </div>
       </div>
     )
   }
 
-  // Count progress
+  // ── Training state ──────────────────────────────────────────────────────────
+
   const totalSets     = session.exercises.flatMap((e) => e.sets).length
   const completedSets = session.exercises
     .flatMap((e) => e.sets)
     .filter((s) => setStates.get(s.id)?.completed ?? s.completed).length
-
   const incompleteSets = totalSets - completedSets
   const hasIncomplete  = incompleteSets > 0
 
+  // Focus mode — covers sidebar and mobile bottom nav
   return (
-    <div className="flex flex-col gap-4 pb-32">
+    <div className="fixed inset-0 z-[60] flex flex-col bg-background">
       {/* Rest timer overlay */}
       {restTimer?.active && (
         <RestTimer
@@ -685,111 +723,131 @@ export default function TrainingPage() {
         />
       )}
 
-      {/* Sticky header */}
-      <div className="sticky top-0 z-10 -mx-4 sm:-mx-6 lg:-mx-8 bg-background/95 backdrop-blur-sm border-b border-border px-4 sm:px-6 lg:px-8 py-3">
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <h1 className="truncate text-base font-semibold">
-              {session.workout_plan_day_id ? (
-                <span>{session.exercises[0]?.exercise?.body_part ?? "Entrenamiento"}</span>
-              ) : (
-                "Entrenamiento libre"
-              )}
-            </h1>
+      {/* ── Top bar ── */}
+      <div className="flex-none border-b border-border bg-background/95 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-3">
+          {/* Exit */}
+          <Link
+            href="/dashboard/rutina"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            aria-label="Salir del entrenamiento"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+
+          <div className="flex-1 min-w-0">
+            <p className="truncate text-sm font-semibold">
+              {session.exercises[0]?.exercise?.body_part ?? "Entrenamiento"}
+            </p>
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Clock className="h-3 w-3" />
-                {formatDuration(elapsed)}
+                <span className="tabular">{formatDuration(elapsed)}</span>
               </span>
-              <span>
-                {completedSets}/{totalSets} series
-              </span>
+              <span className="tabular">{completedSets}/{totalSets} series</span>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Dumbbell className="h-5 w-5 text-primary shrink-0" />
-          </div>
+
+          <Dumbbell className="h-5 w-5 shrink-0 text-primary" />
         </div>
 
         {/* Progress bar */}
-        <div className="mt-2 h-1.5 w-full rounded-full bg-muted">
+        <div className="h-0.5 bg-muted">
           <div
-            className="h-full rounded-full bg-primary transition-all duration-300"
+            className="h-full bg-primary transition-all duration-300"
             style={{ width: totalSets > 0 ? `${(completedSets / totalSets) * 100}%` : "0%" }}
           />
         </div>
       </div>
 
-      {/* Exercises */}
-      {session.exercises.map((exercise) => (
-        <ExerciseCard
-          key={exercise.id}
-          exercise={exercise}
-          setStates={setStates}
-          onSetChange={handleSetChange}
-          onSetComplete={(setId) =>
-            void handleSetComplete(setId, exercise.target_rest_seconds ?? 60)
-          }
-        />
-      ))}
+      {/* ── Scrollable exercise list ── */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-2xl space-y-4 px-4 py-4 pb-6">
+          {session.exercises.map((exercise) => (
+            <ExerciseCard
+              key={exercise.id}
+              exercise={exercise}
+              setStates={setStates}
+              onSetChange={handleSetChange}
+              onSetComplete={(setId) =>
+                void handleSetComplete(setId, exercise.target_rest_seconds ?? 60)
+              }
+            />
+          ))}
+        </div>
+      </div>
 
-      {/* Sticky footer */}
-      <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-border bg-background/95 backdrop-blur-sm p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] md:pb-4">
-        {confirmFinish ? (
-          <div className="flex flex-col gap-2 max-w-lg mx-auto">
-            {hasIncomplete && (
-              <p className="text-center text-sm text-muted-foreground">
-                {incompleteSets} {incompleteSets === 1 ? "serie sin completar" : "series sin completar"}. ¿Deseas finalizar igualmente?
-              </p>
-            )}
+      {/* ── Footer — finish / cancel ── */}
+      <div className="flex-none border-t border-border bg-background/95 backdrop-blur-sm">
+        <div
+          className="mx-auto max-w-2xl px-4 py-3"
+          style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom, 0px))" }}
+        >
+          {confirmFinish ? (
+            <div className="flex flex-col gap-2">
+              {hasIncomplete && (
+                <p className="text-center text-sm text-muted-foreground">
+                  {incompleteSets}{" "}
+                  {incompleteSets === 1 ? "serie sin completar" : "series sin completar"}.
+                  ¿Finalizar igualmente?
+                </p>
+              )}
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setConfirmFinish(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
+                  onClick={() => void handleFinish("complete")}
+                  disabled={finishing}
+                >
+                  {finishing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Sí, finalizar"
+                  )}
+                </Button>
+              </div>
+            </div>
+          ) : (
             <div className="flex gap-2">
+              {/* Cancel workout */}
               <Button
                 variant="outline"
-                className="flex-1"
-                onClick={() => setConfirmFinish(false)}
+                size="sm"
+                className="text-destructive hover:text-destructive"
+                onClick={() => void handleFinish("cancel")}
+                disabled={finishing}
+                aria-label="Cancelar entrenamiento"
               >
-                Cancelar
+                <X className="h-4 w-4" />
               </Button>
+
+              {/* Finish */}
               <Button
-                className="flex-1"
-                onClick={() => void handleFinish("complete")}
+                className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
+                onClick={() => {
+                  if (hasIncomplete) {
+                    setConfirmFinish(true)
+                  } else {
+                    void handleFinish("complete")
+                  }
+                }}
                 disabled={finishing}
               >
-                {finishing ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sí, finalizar"}
+                {finishing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Finalizar entrenamiento"
+                )}
               </Button>
             </div>
-          </div>
-        ) : (
-          <div className="flex gap-2 max-w-lg mx-auto">
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-destructive hover:text-destructive"
-              onClick={() => void handleFinish("cancel")}
-              disabled={finishing}
-            >
-              <X className="h-4 w-4" />
-              <span className="ml-1 hidden sm:inline">Cancelar entreno</span>
-            </Button>
-            <Button
-              className="flex-1"
-              onClick={() => {
-                if (hasIncomplete) {
-                  setConfirmFinish(true)
-                } else {
-                  void handleFinish("complete")
-                }
-              }}
-              disabled={finishing}
-            >
-              {finishing ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                "Finalizar entrenamiento"
-              )}
-            </Button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   )

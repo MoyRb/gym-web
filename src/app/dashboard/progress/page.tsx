@@ -25,8 +25,16 @@ import { EmptyState } from "@/components/dashboard/EmptyState"
 import { PageHeader } from "@/components/dashboard/PageHeader"
 import { SectionHeader } from "@/components/dashboard/SectionHeader"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { calcularIMC } from "@/utils/imc"
+
+function MeasItem({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="tabular text-sm font-bold">{value}</span>
+      <span className="text-[11px] text-muted-foreground">{label}</span>
+    </div>
+  )
+}
 import { getObjetivoLabel } from "@/utils/routines"
 import type { ProgressMeasurementRow } from "@/types/database"
 
@@ -393,13 +401,17 @@ export default function ProgressPage() {
                 unit: "kg",
               },
             ].map(({ icon: Icon, label, value, unit }) => (
-              <div key={label} className="rounded-xl border bg-muted/20 p-4">
-                <Icon className="h-4 w-4 text-muted-foreground mb-2" />
-                <p className="text-xl font-bold">
+              <div key={label} className="rounded-xl border border-border/70 bg-card p-4">
+                <div className="mb-2 flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+                  <Icon className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <p className="tabular text-2xl font-bold">
                   {value}
-                  {unit && <span className="ml-1 text-sm font-normal text-muted-foreground">{unit}</span>}
+                  {unit && (
+                    <span className="ml-1 text-sm font-normal text-muted-foreground">{unit}</span>
+                  )}
                 </p>
-                <p className="text-xs text-muted-foreground">{label}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">{label}</p>
               </div>
             ))}
           </div>
@@ -425,23 +437,24 @@ export default function ProgressPage() {
               <Link
                 key={entry.id}
                 href={`/dashboard/progress/sessions/${entry.id}`}
-                className="flex items-center gap-4 rounded-xl border bg-card p-4 hover:bg-muted/30 transition-colors"
+                className="group flex items-center gap-3 rounded-xl border border-border/70 bg-card px-4 py-3.5 transition-colors hover:border-primary/20 hover:bg-muted/30"
               >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                  <Dumbbell className="h-5 w-5 text-primary" />
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                  <Dumbbell className="h-4 w-4 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold truncate">
                     {entry.plan_day_name ?? "Entrenamiento libre"}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {formatDate(entry.started_at)} · {formatDuration(entry.duration_seconds)} · {entry.completed_sets} series
+                    <span className="tabular">{formatDate(entry.started_at)}</span>
+                    {" · "}
+                    <span className="tabular">{formatDuration(entry.duration_seconds)}</span>
+                    {" · "}
+                    <span className="tabular">{entry.completed_sets} series</span>
                   </p>
                 </div>
-                <Badge variant="outline" className="text-xs shrink-0">
-                  <BarChart3 className="mr-1 h-3 w-3" />
-                  Ver
-                </Badge>
+                <BarChart3 className="h-4 w-4 shrink-0 text-muted-foreground/40 transition-colors group-hover:text-primary" />
               </Link>
             ))}
           </div>
@@ -473,23 +486,25 @@ export default function ProgressPage() {
         ) : (
           <div className="flex flex-col gap-2">
             {measurements.map((m) => (
-              <div key={m.id} className="rounded-xl border bg-card p-4">
-                <p className="text-xs text-muted-foreground mb-2">
+              <div key={m.id} className="rounded-xl border border-border/70 bg-card px-4 py-3.5">
+                <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                   {new Date(m.measured_at).toLocaleDateString("es-ES", {
                     weekday: "long",
                     day: "numeric",
                     month: "long",
                   })}
                 </p>
-                <div className="flex flex-wrap gap-3">
-                  {m.weight_kg        != null && <span className="text-sm"><b>{m.weight_kg} kg</b> <span className="text-muted-foreground">peso</span></span>}
-                  {m.body_fat_percent != null && <span className="text-sm"><b>{m.body_fat_percent}%</b> <span className="text-muted-foreground">grasa</span></span>}
-                  {m.waist_cm        != null && <span className="text-sm"><b>{m.waist_cm} cm</b> <span className="text-muted-foreground">cintura</span></span>}
-                  {m.chest_cm        != null && <span className="text-sm"><b>{m.chest_cm} cm</b> <span className="text-muted-foreground">pecho</span></span>}
-                  {m.arm_cm          != null && <span className="text-sm"><b>{m.arm_cm} cm</b> <span className="text-muted-foreground">brazo</span></span>}
-                  {m.thigh_cm        != null && <span className="text-sm"><b>{m.thigh_cm} cm</b> <span className="text-muted-foreground">muslo</span></span>}
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-4">
+                  {m.weight_kg        != null && <MeasItem value={`${m.weight_kg} kg`}  label="Peso" />}
+                  {m.body_fat_percent != null && <MeasItem value={`${m.body_fat_percent}%`} label="Grasa" />}
+                  {m.waist_cm        != null && <MeasItem value={`${m.waist_cm} cm`}  label="Cintura" />}
+                  {m.chest_cm        != null && <MeasItem value={`${m.chest_cm} cm`}  label="Pecho" />}
+                  {m.arm_cm          != null && <MeasItem value={`${m.arm_cm} cm`}    label="Brazo" />}
+                  {m.thigh_cm        != null && <MeasItem value={`${m.thigh_cm} cm`}  label="Muslo" />}
                 </div>
-                {m.notes && <p className="mt-2 text-xs text-muted-foreground">{m.notes}</p>}
+                {m.notes && (
+                  <p className="mt-2.5 text-xs text-muted-foreground">{m.notes}</p>
+                )}
               </div>
             ))}
           </div>

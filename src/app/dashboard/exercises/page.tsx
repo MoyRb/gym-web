@@ -237,27 +237,27 @@ export default async function ExercisesPage({
         />
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
             {exercises.map((ex) => (
               <Link
                 key={ex.id}
                 href={`/dashboard/exercises/${ex.id}`}
-                className="group flex flex-col gap-2 rounded-lg border border-border bg-background p-4 transition-colors hover:bg-muted/50"
+                className="group flex flex-col gap-2 rounded-xl border border-border/70 bg-card p-4 transition-colors hover:border-primary/30 hover:bg-muted/30"
               >
-                <p className="text-sm font-semibold leading-snug group-hover:text-primary transition-colors line-clamp-2">
+                <p className="text-sm font-semibold leading-snug transition-colors group-hover:text-primary line-clamp-2">
                   {ex.name}
                 </p>
                 <div className="flex flex-wrap gap-1.5">
-                  <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+                  <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
                     {translateBodyPart(ex.body_part)}
                   </span>
-                  <span className="rounded-md border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
+                  <span className="rounded-md border border-border/60 bg-muted/40 px-2 py-0.5 text-[11px] text-muted-foreground">
                     {translateEquipment(ex.equipment)}
                   </span>
                 </div>
                 {ex.target && (
-                  <p className="text-[11px] text-muted-foreground">
-                    Objetivo: {ex.target}
+                  <p className="text-[11px] text-muted-foreground capitalize">
+                    {ex.target}
                   </p>
                 )}
               </Link>

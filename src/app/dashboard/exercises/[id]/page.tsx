@@ -57,12 +57,10 @@ function translateEquipment(value: string): string {
 }
 
 // ── Extraer pasos de instrucciones ────────────────────────────────────────────
-// Prioridad: instruction_steps.es → instructions.es → vacío
 function resolveSteps(
   instructionSteps: unknown,
   instructions: unknown
 ): string[] {
-  // 1. Intentar instruction_steps.es
   if (instructionSteps !== null && typeof instructionSteps === "object" && !Array.isArray(instructionSteps)) {
     const obj = instructionSteps as Record<string, unknown>
     const es = obj.es
@@ -73,7 +71,6 @@ function resolveSteps(
       return [es.trim()]
     }
   }
-  // Array directo en instruction_steps (sin clave de idioma)
   if (Array.isArray(instructionSteps) && instructionSteps.length > 0) {
     const withEs = instructionSteps.find(
       (item) => typeof item === "object" && item !== null && "es" in (item as object)
@@ -85,17 +82,11 @@ function resolveSteps(
     }
   }
 
-  // 2. Fallback: instructions.es
   if (instructions !== null && typeof instructions === "object" && !Array.isArray(instructions)) {
     const obj = instructions as Record<string, unknown>
     const es = obj.es
-    if (typeof es === "string" && es.trim()) {
-      // Puede venir como un texto largo con saltos de línea o comas
-      return [es.trim()]
-    }
-    if (Array.isArray(es) && es.length > 0) {
-      return es.map((s) => String(s)).filter(Boolean)
-    }
+    if (typeof es === "string" && es.trim()) return [es.trim()]
+    if (Array.isArray(es) && es.length > 0) return es.map((s) => String(s)).filter(Boolean)
   }
 
   return []
@@ -109,7 +100,6 @@ export default async function ExerciseDetailPage({
 }) {
   const { id } = await params
 
-  // Validación básica de UUID antes de consultar
   const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
   if (!UUID_REGEX.test(id)) notFound()
 
@@ -125,10 +115,6 @@ export default async function ExerciseDetailPage({
   if (error || !exercise) notFound()
 
   const steps = resolveSteps(exercise.instruction_steps, exercise.instructions)
-
-  // Datos del GIF: signed URL + attribution.
-  // Generados server-side; service_role nunca llega al cliente.
-  // Retorna null cuando license_status='pending' o is_active=false.
   const gifData = await getExerciseGifData(exercise.id)
 
   return (
@@ -139,94 +125,125 @@ export default async function ExerciseDetailPage({
         backLabel="Catálogo"
       />
 
-      {/* Demostración visual — posición prominente, antes de metadata */}
-      <div className="flex flex-col items-center gap-2">
-        {gifData ? (
-          <>
-            <div className="relative w-full max-w-xs mx-auto overflow-hidden rounded-xl border border-border bg-muted/30 aspect-square">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={gifData.url}
-                alt={`Demostración de ${exercise.name}`}
-                className="h-full w-full object-contain motion-reduce:hidden"
-              />
-              {/* Fallback de texto para prefers-reduced-motion */}
-              <p className="absolute inset-0 hidden motion-reduce:flex items-center justify-center text-xs text-muted-foreground text-center px-4">
-                Demostración de {exercise.name}
+      {/* ── 50/50 editorial layout on desktop ── */}
+      <div className="lg:grid lg:grid-cols-2 lg:gap-8 lg:items-start">
+
+        {/* Left column — GIF (sticky on desktop) */}
+        <div className="lg:sticky lg:top-6">
+          {gifData ? (
+            <div className="flex flex-col items-center gap-3">
+              <div className="relative mx-auto w-full max-w-sm overflow-hidden rounded-2xl border border-border bg-muted/20 aspect-square">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={gifData.url}
+                  alt={`Demostración de ${exercise.name}`}
+                  className="h-full w-full object-contain motion-reduce:hidden"
+                />
+                {/* Reduced motion fallback */}
+                <div className="absolute inset-0 hidden motion-reduce:flex items-center justify-center">
+                  <p className="text-xs text-muted-foreground text-center px-6">
+                    Demostración de {exercise.name}
+                  </p>
+                </div>
+              </div>
+              {gifData.attribution && (
+                <p className="text-[10px] text-muted-foreground/50 text-center max-w-xs">
+                  {gifData.attribution}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="mx-auto w-full max-w-sm rounded-2xl border border-border bg-muted/20 aspect-square flex flex-col items-center justify-center gap-2">
+              <div className="h-12 w-12 rounded-xl bg-muted/50 flex items-center justify-center">
+                <span className="text-2xl text-muted-foreground/30">▶</span>
+              </div>
+              <p className="text-xs text-muted-foreground/60 text-center px-6">
+                Demostración no disponible
               </p>
             </div>
-            {gifData.attribution && (
-              <p className="text-[10px] text-muted-foreground/50 text-center">
-                {gifData.attribution}
+          )}
+        </div>
+
+        {/* Right column — metadata + instructions */}
+        <div className="mt-6 flex flex-col gap-6 lg:mt-0">
+          {/* Metadata chips */}
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-2">
+            <MetaCard label="Zona corporal"     value={translateBodyPart(exercise.body_part)} accent />
+            <MetaCard label="Equipamiento"      value={translateEquipment(exercise.equipment)} />
+            <MetaCard label="Músculo objetivo"  value={exercise.target} />
+            {exercise.muscle_group && (
+              <MetaCard label="Grupo muscular" value={exercise.muscle_group} />
+            )}
+          </div>
+
+          {/* Secondary muscles */}
+          {exercise.secondary_muscles && exercise.secondary_muscles.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                Músculos secundarios
+              </h2>
+              <div className="flex flex-wrap gap-1.5">
+                {exercise.secondary_muscles.map((m: string) => (
+                  <span
+                    key={m}
+                    className="rounded-md border border-border px-2 py-0.5 text-xs text-muted-foreground capitalize"
+                  >
+                    {m}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Instructions */}
+          <div className="flex flex-col gap-3">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              Instrucciones
+            </h2>
+            {steps.length > 0 ? (
+              <ol className="flex flex-col gap-2.5">
+                {steps.map((step, i) => (
+                  <li
+                    key={i}
+                    className="flex gap-3 rounded-lg border border-border/60 bg-muted/20 px-4 py-3"
+                  >
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                      {i + 1}
+                    </span>
+                    <p className="text-sm leading-relaxed">{step}</p>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Instrucciones no disponibles para este ejercicio.
               </p>
             )}
-          </>
-        ) : (
-          <div className="w-full max-w-xs mx-auto rounded-xl border border-border bg-muted/20 aspect-square flex items-center justify-center">
-            <p className="text-xs text-muted-foreground/60 text-center px-6">
-              Demostración no disponible
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Metadata */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <MetaCard label="Zona corporal" value={translateBodyPart(exercise.body_part)} />
-        <MetaCard label="Equipamiento"  value={translateEquipment(exercise.equipment)} />
-        <MetaCard label="Músculo objetivo" value={exercise.target} />
-        {exercise.muscle_group && (
-          <MetaCard label="Grupo muscular" value={exercise.muscle_group} />
-        )}
-      </div>
-
-      {/* Músculos secundarios */}
-      {exercise.secondary_muscles && exercise.secondary_muscles.length > 0 && (
-        <div className="flex flex-col gap-2">
-          <h2 className="text-sm font-semibold">Músculos secundarios</h2>
-          <div className="flex flex-wrap gap-1.5">
-            {exercise.secondary_muscles.map((m: string) => (
-              <span
-                key={m}
-                className="rounded-md border border-border px-2 py-0.5 text-xs text-muted-foreground"
-              >
-                {m}
-              </span>
-            ))}
           </div>
         </div>
-      )}
-
-      {/* Instrucciones */}
-      <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold">Instrucciones</h2>
-        {steps.length > 0 ? (
-          <ol className="flex flex-col gap-3">
-            {steps.map((step, i) => (
-              <li key={i} className="flex gap-3 rounded-lg border border-border bg-muted/20 p-3">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                  {i + 1}
-                </span>
-                <p className="text-sm leading-relaxed">{step}</p>
-              </li>
-            ))}
-          </ol>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            Instrucciones no disponibles para este ejercicio.
-          </p>
-        )}
       </div>
     </div>
   )
 }
 
-// ── Componente auxiliar ───────────────────────────────────────────────────────
-function MetaCard({ label, value }: { label: string; value: string }) {
+// ── MetaCard ─────────────────────────────────────────────────────────────────
+function MetaCard({
+  label,
+  value,
+  accent = false,
+}: {
+  label: string
+  value: string
+  accent?: boolean
+}) {
   return (
-    <div className="flex flex-col gap-0.5 rounded-lg border border-border bg-muted/20 p-3">
-      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="text-sm font-semibold capitalize">{value}</p>
+    <div className="flex flex-col gap-0.5 rounded-lg border border-border/70 bg-muted/20 p-3">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+        {label}
+      </p>
+      <p className={`text-sm font-semibold capitalize ${accent ? "text-primary" : ""}`}>
+        {value}
+      </p>
     </div>
   )
 }

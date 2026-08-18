@@ -110,25 +110,22 @@ export default async function SessionDetailPage({ params }: RouteContext) {
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="rounded-xl border bg-muted/20 p-4 text-center">
-          <Clock className="mx-auto h-4 w-4 text-muted-foreground mb-1" />
-          <p className="text-lg font-bold">{formatDuration(session.duration_seconds)}</p>
-          <p className="text-xs text-muted-foreground">Duración</p>
-        </div>
-        <div className="rounded-xl border bg-muted/20 p-4 text-center">
-          <CheckCircle2 className="mx-auto h-4 w-4 text-muted-foreground mb-1" />
-          <p className="text-lg font-bold">{completedSets.length}/{allSets.length}</p>
-          <p className="text-xs text-muted-foreground">Series</p>
-        </div>
-        <div className="rounded-xl border bg-muted/20 p-4 text-center">
-          <Dumbbell className="mx-auto h-4 w-4 text-muted-foreground mb-1" />
-          <p className="text-lg font-bold">{totalReps}</p>
-          <p className="text-xs text-muted-foreground">Repeticiones</p>
-        </div>
-        <div className="rounded-xl border bg-muted/20 p-4 text-center">
-          <p className="text-lg font-bold">{Math.round(totalVolume)} kg</p>
-          <p className="text-xs text-muted-foreground">Volumen</p>
-        </div>
+        {[
+          { icon: Clock,        value: formatDuration(session.duration_seconds), label: "Duración" },
+          { icon: CheckCircle2, value: `${completedSets.length}/${allSets.length}`, label: "Series" },
+          { icon: Dumbbell,     value: totalReps,                                label: "Reps" },
+          { icon: null,         value: `${Math.round(totalVolume)} kg`,           label: "Volumen" },
+        ].map(({ icon: Icon, value, label }) => (
+          <div key={label} className="rounded-xl border border-border/70 bg-card p-4">
+            {Icon && (
+              <div className="mb-2 flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+                <Icon className="h-3.5 w-3.5 text-primary" />
+              </div>
+            )}
+            <p className="tabular text-xl font-bold">{value}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{label}</p>
+          </div>
+        ))}
       </div>
 
       {/* Exercises — read only */}
