@@ -1,343 +1,156 @@
-import { BarChart3, Users, Target, Activity, TrendingUp, Download, BookOpen } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { createServiceRoleClient } from "@/lib/supabase/server"
-import { categoryLabel, formatGoal, getMonthStartIso, goalColor, imcColor, percentage } from "@/lib/fitness-data"
 import { requireAdmin } from "@/lib/auth/guards"
-import { PageHeader } from "@/components/dashboard/PageHeader"
+import { getOverviewStats, getDailyTrend } from "@/lib/admin/queries"
+import { KpiCard } from "@/components/admin/KpiCard"
+import { SparkBars } from "@/components/admin/SparkBars"
+import { completionRate, formatDuration } from "@/lib/admin/utils"
 
-function StatCard({
-  title,
-  value,
-  sub,
-  icon: Icon,
-  accent,
-}: {
-  title: string
-  value: string | number
-  sub?: string
-  icon: React.ElementType
-  accent?: boolean
-}) {
-  return (
-    <Card className={accent ? "border-primary/30 bg-primary/5" : ""}>
-      <CardContent className="flex items-start justify-between gap-4 pt-6">
-        <div className="flex flex-col gap-1">
-          <p className="text-sm text-muted-foreground">{title}</p>
-          <p className="text-3xl font-black">{value}</p>
-          {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
-        </div>
-        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${accent ? "bg-primary/15" : "bg-muted"}`}>
-          <Icon className={`h-6 w-6 ${accent ? "text-primary" : "text-muted-foreground"}`} />
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
-function HorizontalBar({
-  label,
-  value,
-  max,
-  color,
-  count,
-}: {
-  label: string
-  value: number
-  max: number
-  color: string
-  count: number
-}) {
-  const width = Math.round((value / Math.max(1, max)) * 100)
-  return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex items-center justify-between text-sm">
-        <span className="font-medium">{label}</span>
-        <div className="flex items-center gap-2">
-          <span className="text-muted-foreground text-xs">{count}</span>
-          <span className="font-semibold text-xs">{value}%</span>
-        </div>
-      </div>
-      <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-        <div className="h-full rounded-full transition-all duration-700" style={{ width: `${width}%`, backgroundColor: color }} />
-      </div>
-    </div>
-  )
-}
-
-export default async function AdminPage() {
+export default async function AdminOverviewPage() {
   await requireAdmin()
 
-  const service = createServiceRoleClient()
-
-  const [{ data: usersResult }, { data: profiles }, { data: resources }, { data: routineTemplates }, { data: routineViews }, { data: pdfEvents }, { data: weeklyEvents }] = await Promise.all([
-    service.auth.admin.listUsers({ page: 1, perPage: 1000 }),
-    service.from("profiles").select("id, goal, bmi_category"),
-    service.from("resources").select("id, title, category, is_active"),
-    service.from("routine_templates").select("id, title, goal, experience, days_per_week, is_active"),
-    service.from("analytics_events").select("metadata").eq("event_type", "routine_viewed"),
-    service.from("analytics_events").select("metadata").eq("event_type", "pdf_downloaded"),
-    service.from("analytics_events").select("event_type, created_at").order("created_at", { ascending: false }).limit(500),
+  const [stats, trend30] = await Promise.all([
+    getOverviewStats(),
+    getDailyTrend(30),
   ])
 
-  const safeProfiles = (profiles ?? []) as Array<{ goal: string | null; bmi_category: string | null }>
-  const safeResources = (resources ?? []) as Array<{ id: string; title: string; category: "rutinas" | "calentamiento" | "movilidad" | "cardio" | "nutricion_basica" | "recuperacion" | "principiantes" | "nutricion" | "entrenamiento" | "motivacion"; is_active: boolean }>
-  const safeRoutineTemplates = (routineTemplates ?? []) as Array<{ id: string; title: string; goal: string; experience: string; days_per_week: number; is_active: boolean }>
-  const safeRoutineViews = (routineViews ?? []) as Array<{ metadata: unknown }>
-  const safePdfEvents = (pdfEvents ?? []) as Array<{ metadata: unknown }>
-  const safeWeeklyEvents = (weeklyEvents ?? []) as Array<{ event_type: string; created_at: string }>
+  const sessionCompletionRate = completionRate(stats.sessions_completed, stats.sessions_total)
+  const aiCompletionRate      = completionRate(stats.ai_gen_completed,   stats.ai_gen_total)
 
-  const users = usersResult.users ?? []
-  const totalUsuarios = users.length
-  const monthStart = getMonthStartIso()
-  const usuariosNuevosEsteMes = users.filter((u) => u.created_at >= monthStart).length
-
-  const completedProfiles = safeProfiles.filter((p) => p.goal && p.bmi_category).length
-  const perfilesCompletados = percentage(completedProfiles, Math.max(1, totalUsuarios))
-
-  const goalCounts = new Map<string, number>()
-  const imcCounts = new Map<string, number>()
-  for (const profile of safeProfiles) {
-    if (profile.goal) goalCounts.set(profile.goal, (goalCounts.get(profile.goal) ?? 0) + 1)
-    if (profile.bmi_category) imcCounts.set(profile.bmi_category, (imcCounts.get(profile.bmi_category) ?? 0) + 1)
-  }
-
-  const totalGoals = Array.from(goalCounts.values()).reduce((acc, n) => acc + n, 0)
-  const totalImc = Array.from(imcCounts.values()).reduce((acc, n) => acc + n, 0)
-
-  const objetivoStats = Array.from(goalCounts.entries())
-    .map(([goal, count]) => ({
-      objetivo: formatGoal(goal),
-      count,
-      porcentaje: percentage(count, totalGoals),
-      color: goalColor(goal),
-    }))
-    .sort((a, b) => b.count - a.count)
-
-  const imcStats = Array.from(imcCounts.entries())
-    .map(([categoria, count]) => ({
-      categoria,
-      count,
-      porcentaje: percentage(count, totalImc),
-      color: imcColor(categoria),
-    }))
-    .sort((a, b) => b.count - a.count)
-
-  const routineMap = new Map<string, { titulo: string; objetivo: string; vistas: number }>()
-  for (const event of safeRoutineViews) {
-    const metadata = event.metadata as { rutinaId?: string; rutinaTitle?: string }
-    const key = metadata.rutinaId ?? metadata.rutinaTitle
-    if (!key) continue
-    const current = routineMap.get(key)
-    routineMap.set(key, {
-      titulo: metadata.rutinaTitle ?? key,
-      objetivo: "Plan recomendado",
-      vistas: (current?.vistas ?? 0) + 1,
-    })
-  }
-
-  const routineStats = Array.from(routineMap.values()).sort((a, b) => b.vistas - a.vistas).slice(0, 5)
-
-  const resourcesById = new Map(safeResources.map((r) => [r.id, r]))
-  const pdfMap = new Map<string, { titulo: string; categoria: string; descargas: number }>()
-  for (const event of safePdfEvents) {
-    const metadata = event.metadata as { pdfId?: string; pdfTitle?: string; category?: string }
-    const key = metadata.pdfId ?? metadata.pdfTitle
-    if (!key) continue
-
-    const resource = metadata.pdfId ? resourcesById.get(metadata.pdfId) : undefined
-    const current = pdfMap.get(key)
-
-    pdfMap.set(key, {
-      titulo: metadata.pdfTitle ?? resource?.title ?? key,
-      categoria: metadata.category ? categoryLabel(metadata.category as Parameters<typeof categoryLabel>[0]) : resource?.category ? categoryLabel(resource.category) : "General",
-      descargas: (current?.descargas ?? 0) + 1,
-    })
-  }
-
-  const pdfStats = Array.from(pdfMap.values()).sort((a, b) => b.descargas - a.descargas).slice(0, 5)
-
-  const dailyMap = new Map<string, { registros: number; sesiones: number }>()
-  for (const event of safeWeeklyEvents) {
-    const key = new Date(event.created_at).toLocaleDateString("es-ES", { weekday: "short", timeZone: "UTC" })
-    const current = dailyMap.get(key) ?? { registros: 0, sesiones: 0 }
-    if (event.event_type === "register") current.registros += 1
-    if (event.event_type === "login") current.sesiones += 1
-    dailyMap.set(key, current)
-  }
-
-  const activeResources = safeResources.filter((r) => r.is_active).length
-  const activeTemplates = safeRoutineTemplates.filter((r) => r.is_active).length
-
-  const dailyActivity = Array.from(dailyMap.entries()).map(([dia, value]) => ({
-    dia: dia.charAt(0).toUpperCase() + dia.slice(1),
-    ...value,
+  const trendSessionData = trend30.map((d) => ({
+    label: d.day.slice(5),          // "MM-DD"
+    value: d.sessions_started,
   }))
-
-  const maxObjetivo = Math.max(1, ...objetivoStats.map((s) => s.porcentaje))
-  const maxImc = Math.max(1, ...imcStats.map((s) => s.porcentaje))
-  const maxRutinas = Math.max(1, ...routineStats.map((s) => s.vistas))
-  const maxPdfs = Math.max(1, ...pdfStats.map((s) => s.descargas))
-  const maxSesiones = Math.max(1, ...dailyActivity.map((d) => d.sesiones))
-  const maxRegistros = Math.max(1, ...dailyActivity.map((d) => d.registros))
+  const trendUserData = trend30.map((d) => ({
+    label: d.day.slice(5),
+    value: d.new_users,
+  }))
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        title="Panel de administración"
-        subtitle="Datos agregados reales de actividad de FITNESS CLUB."
-        actions={<Badge variant="outline" className="text-xs font-normal">Supabase en vivo</Badge>}
-      />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <StatCard title="Total de usuarios" value={totalUsuarios} sub="Registrados en la plataforma" icon={Users} accent />
-        <StatCard title="Nuevos este mes" value={usuariosNuevosEsteMes} sub="Registros en el mes actual" icon={TrendingUp} />
-        <StatCard title="Perfiles completados" value={`${perfilesCompletados}%`} sub="Usuarios con perfil físico completo" icon={Activity} />
-      </div>
+      {/* ── Users ──────────────────────────────────────── */}
+      <section className="flex flex-col gap-2">
+        <h2 className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+          Usuarios
+        </h2>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+          <KpiCard
+            label="Total"
+            value={stats.total_users}
+            sub="registrados"
+            accent
+          />
+          <KpiCard
+            label="Nuevos 7d"
+            value={stats.new_users_7d}
+          />
+          <KpiCard
+            label="Nuevos 30d"
+            value={stats.new_users_30d}
+          />
+          <KpiCard
+            label="Activos 7d"
+            value={stats.active_users_7d}
+            sub="≥1 sesión"
+          />
+          <KpiCard
+            label="Activos 30d"
+            value={stats.active_users_30d}
+            sub="≥1 sesión"
+          />
+        </div>
+      </section>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base"><Target className="h-4 w-4 text-primary" />Objetivos más elegidos</CardTitle>
-            <CardDescription>Distribución por objetivo principal</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            {objetivoStats.map((s) => (
-              <HorizontalBar key={s.objetivo} label={s.objetivo} value={s.porcentaje} max={maxObjetivo} color={s.color} count={s.count} />
-            ))}
-          </CardContent>
-        </Card>
+      {/* ── Sessions ───────────────────────────────────── */}
+      <section className="flex flex-col gap-2">
+        <h2 className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+          Sesiones de entrenamiento
+        </h2>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+          <KpiCard label="Total"      value={stats.sessions_total}     />
+          <KpiCard label="Completadas" value={stats.sessions_completed} positive />
+          <KpiCard
+            label="Completion rate"
+            value={sessionCompletionRate !== null ? `${sessionCompletionRate}%` : "—"}
+            sub="sobre total iniciadas"
+          />
+          <KpiCard label="Duración media" value={formatDuration(stats.avg_duration_seconds)} sub="sesiones completadas" />
+          <KpiCard label="Sesiones 7d"    value={stats.sessions_7d}    />
+          <KpiCard label="Sesiones 30d"   value={stats.sessions_30d}   />
+        </div>
+      </section>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base"><Activity className="h-4 w-4 text-primary" />Categorías de IMC</CardTitle>
-            <CardDescription>Distribución del IMC entre los miembros</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            {imcStats.map((s) => (
-              <HorizontalBar key={s.categoria} label={s.categoria} value={s.porcentaje} max={maxImc} color={s.color} count={s.count} />
-            ))}
-          </CardContent>
-        </Card>
-      </div>
+      {/* ── Plans ──────────────────────────────────────── */}
+      <section className="flex flex-col gap-2">
+        <h2 className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+          Planes de entrenamiento
+        </h2>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <KpiCard label="Generados por AI" value={stats.plans_ai}       accent />
+          <KpiCard label="Desde plantilla"  value={stats.plans_template} />
+          <KpiCard label="Manuales"         value={stats.plans_manual}   />
+          <KpiCard label="Borradores"       value={stats.plans_draft}    sub="pendientes de finalizar" />
+        </div>
+      </section>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base"><BarChart3 className="h-4 w-4 text-primary" />Rutinas más vistas</CardTitle>
-            <CardDescription>Número de visualizaciones por rutina</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            {routineStats.map((r) => (
-              <div key={r.titulo} className="flex flex-col gap-1.5">
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="font-medium truncate">{r.titulo}</span>
-                    <Badge variant="outline" className="text-xs shrink-0">{r.objetivo}</Badge>
-                  </div>
-                  <span className="font-semibold ml-2 shrink-0">{r.vistas}</span>
-                </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                  <div className="h-full rounded-full bg-primary transition-all duration-700" style={{ width: `${Math.round((r.vistas / maxRutinas) * 100)}%` }} />
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+      {/* ── AI Generations ─────────────────────────────── */}
+      <section className="flex flex-col gap-2">
+        <h2 className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+          Generaciones AI
+        </h2>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+          <KpiCard label="Total"       value={stats.ai_gen_total}       />
+          <KpiCard label="Completadas" value={stats.ai_gen_completed}   positive />
+          <KpiCard label="Fallidas"    value={stats.ai_gen_failed}      />
+          <KpiCard label="En progreso" value={stats.ai_gen_in_progress} />
+          <KpiCard
+            label="Completion rate"
+            value={aiCompletionRate !== null ? `${aiCompletionRate}%` : "—"}
+          />
+        </div>
+      </section>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base"><Download className="h-4 w-4 text-primary" />PDFs más descargados</CardTitle>
-            <CardDescription>Material descargado por los miembros</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            {pdfStats.map((p) => (
-              <div key={p.titulo} className="flex flex-col gap-1.5">
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="font-medium truncate">{p.titulo}</span>
-                    <Badge variant="secondary" className="text-xs shrink-0">{p.categoria}</Badge>
-                  </div>
-                  <span className="font-semibold ml-2 shrink-0">{p.descargas}</span>
-                </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                  <div className="h-full rounded-full bg-secondary transition-all duration-700" style={{ width: `${Math.round((p.descargas / maxPdfs) * 100)}%` }} />
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base"><BookOpen className="h-4 w-4 text-primary" />Biblioteca de contenido</CardTitle>
-            <CardDescription>Resumen de rutinas base y recursos cargados</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <p><span className="font-semibold">Rutinas base activas:</span> {activeTemplates} / {safeRoutineTemplates.length}</p>
-            <p><span className="font-semibold">Recursos activos:</span> {activeResources} / {safeResources.length}</p>
-            <p className="text-muted-foreground">Próximo paso: edición desde CMS (pendiente).</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Rutinas base publicadas</CardTitle>
-            <CardDescription>Catálogo disponible para recomendaciones</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2 max-h-72 overflow-auto">
-            {safeRoutineTemplates.slice(0, 12).map((item) => (
-              <div key={item.id} className="flex items-center justify-between gap-2 rounded-lg border p-2 text-sm">
-                <div className="min-w-0">
-                  <p className="font-medium truncate">{item.title}</p>
-                  <p className="text-xs text-muted-foreground truncate">{formatGoal(item.goal)} · {item.experience} · {item.days_per_week} días</p>
-                </div>
-                <Badge variant={item.is_active ? "secondary" : "outline"}>{item.is_active ? "Activa" : "Inactiva"}</Badge>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Recursos publicados</CardTitle>
-          <CardDescription>Material visible para usuarios autenticados</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2 max-h-72 overflow-auto">
-          {safeResources.slice(0, 12).map((item) => (
-            <div key={item.id} className="flex items-center justify-between gap-2 rounded-lg border p-2 text-sm">
-              <div className="min-w-0">
-                <p className="font-medium truncate">{item.title}</p>
-                <p className="text-xs text-muted-foreground">{categoryLabel(item.category)}</p>
-              </div>
-              <Badge variant={item.is_active ? "secondary" : "outline"}>{item.is_active ? "Activo" : "Inactivo"}</Badge>
+      {/* ── 30-day Trends ──────────────────────────────── */}
+      {trend30.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+            Tendencias — últimos 30 días
+          </h2>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="rounded border border-border bg-card p-3">
+              <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                Sesiones por día
+              </p>
+              <SparkBars
+                data={trendSessionData}
+                height={52}
+                color="#CF2020"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Total 30d: <span className="font-semibold text-foreground">{stats.sessions_30d}</span>
+                {" · "}Completadas: <span className="font-semibold text-foreground">{stats.sessions_completed_30d}</span>
+              </p>
             </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base"><TrendingUp className="h-4 w-4 text-primary" />Actividad semanal</CardTitle>
-          <CardDescription>Sesiones y nuevos registros (últimos 7 días)</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-end gap-3 h-32">
-            {dailyActivity.map((d) => (
-              <div key={d.dia} className="flex flex-1 flex-col items-center gap-2">
-                <div className="flex flex-1 w-full items-end gap-1">
-                  <div className="flex-1 rounded-t-md bg-secondary/70 transition-all duration-700 min-h-1" style={{ height: `${Math.round((d.sesiones / maxSesiones) * 100)}%` }} title={`${d.sesiones} sesiones`} />
-                  <div className="flex-1 rounded-t-md bg-primary transition-all duration-700 min-h-1" style={{ height: `${Math.round((d.registros / maxRegistros) * 100)}%` }} title={`${d.registros} registros`} />
-                </div>
-                <span className="text-xs text-muted-foreground font-medium">{d.dia}</span>
-              </div>
-            ))}
+            <div className="rounded border border-border bg-card p-3">
+              <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                Nuevos usuarios por día
+              </p>
+              <SparkBars
+                data={trendUserData}
+                height={52}
+                color="#34D399"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Total 30d: <span className="font-semibold text-foreground">{stats.new_users_30d}</span>
+              </p>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+        </section>
+      )}
+
+      {/* ── Definition footnote ────────────────────────── */}
+      <p className="text-[10px] text-muted-foreground border-t border-border pt-3">
+        <strong>Active user (CORTE 1):</strong> usuario con al menos una workout_session registrada en el periodo, independientemente del status de la sesión.
+      </p>
     </div>
   )
 }
