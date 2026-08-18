@@ -1,64 +1,73 @@
-import { UserPlus, ClipboardList, Dumbbell, BookOpen, TrendingUp } from "lucide-react"
+import { UserPlus, Sparkles, Dumbbell } from "lucide-react"
 
 const steps = [
   {
     number: "01",
     icon: UserPlus,
-    title: "Te registras",
-    description: "Creas tu cuenta y accedes a tu dashboard personal en minutos.",
+    title: "Crea tu cuenta",
+    description:
+      "Regístrate en segundos. Completa tu objetivo, nivel de experiencia y días disponibles para entrenar.",
   },
   {
     number: "02",
-    icon: ClipboardList,
-    title: "Completas tu perfil",
-    description: "Nos indicas objetivo, nivel y días disponibles para entrenar.",
+    icon: Sparkles,
+    title: "Tu IA genera tu plan",
+    description:
+      "El sistema analiza tu perfil y construye un plan de entrenamiento personalizado con ejercicios seleccionados para ti.",
   },
   {
     number: "03",
     icon: Dumbbell,
-    title: "Recibes tu rutina",
-    description: "Asignamos una rutina base del catálogo que mejor encaja con tu perfil.",
-  },
-  {
-    number: "04",
-    icon: BookOpen,
-    title: "Consultas material",
-    description: "Descargas recursos de apoyo (calentamiento, movilidad, cardio y nutrición básica).",
-  },
-  {
-    number: "05",
-    icon: TrendingUp,
-    title: "Das seguimiento",
-    description: "Entrenas, revisas tu progreso y ajustas tu perfil cuando cambian tus objetivos.",
+    title: "Entrena con guía",
+    description:
+      "Sigue cada sesión con demostraciones visuales, registra tus series y observa tu progreso en el tiempo.",
   },
 ]
 
 export function HowItWorksSection() {
   return (
-    <section id="como-funciona" className="py-20 sm:py-28 bg-muted/40">
+    <section id="como-funciona" className="py-20 sm:py-28">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-14">
-          <p className="text-sm font-semibold uppercase tracking-widest text-primary mb-3">Proceso real</p>
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Cómo funciona FITNESS CLUB</h2>
-          <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-            Un flujo claro para empezar bien desde la primera semana.
+        <div className="mb-16 text-center">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-primary">
+            Proceso
+          </p>
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+            Cómo funciona
+          </h2>
+          <p className="mx-auto mt-4 max-w-lg text-muted-foreground">
+            Tres pasos para pasar de crear una cuenta a entrenar con un plan diseñado para ti.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid grid-cols-1 gap-12 sm:grid-cols-3">
           {steps.map((step, i) => {
             const Icon = step.icon
             return (
-              <div key={step.number} className="flex flex-col items-center text-center">
-                <div className="relative mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
-                  <Icon className="h-7 w-7" />
-                  <div className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-background ring-2 ring-primary text-xs font-bold text-primary">
-                    {i + 1}
+              <div key={step.number} className="relative flex flex-col gap-5">
+                {/* Connector line (desktop) */}
+                {i < steps.length - 1 && (
+                  <div className="absolute left-[calc(50%+2rem)] top-6 hidden h-px w-[calc(100%-1rem)] bg-border sm:block" />
+                )}
+
+                <div className="flex items-center gap-4">
+                  <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded bg-primary/10">
+                    <Icon className="h-5 w-5 text-primary" />
+                    <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-background border border-border text-[10px] font-bold text-muted-foreground">
+                      {i + 1}
+                    </span>
                   </div>
+                  <span className="text-5xl font-bold text-border/40 tabular leading-none">
+                    {step.number}
+                  </span>
                 </div>
-                <div className="text-5xl font-black text-primary/10 leading-none mb-2">{step.number}</div>
-                <h3 className="font-semibold mb-2">{step.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{step.description}</p>
+
+                <div>
+                  <h3 className="mb-2 font-semibold">{step.title}</h3>
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    {step.description}
+                  </p>
+                </div>
               </div>
             )
           })}

@@ -1,11 +1,13 @@
 import { PublicHeader } from "@/components/layout/PublicHeader"
 import { PublicFooter } from "@/components/layout/PublicFooter"
 import { HeroSection } from "@/components/landing/HeroSection"
-import { BenefitsSection } from "@/components/landing/BenefitsSection"
+import { ProductProofSection } from "@/components/landing/ProductProofSection"
 import { HowItWorksSection } from "@/components/landing/HowItWorksSection"
 import { RoutinesSection } from "@/components/landing/RoutinesSection"
-import { TestimonialsSection } from "@/components/landing/TestimonialsSection"
-import { ContactSection } from "@/components/landing/ContactSection"
+import { BenefitsSection } from "@/components/landing/BenefitsSection"
+import { ExerciseGuidanceSection } from "@/components/landing/ExerciseGuidanceSection"
+import { PricingSection } from "@/components/landing/PricingSection"
+import { FAQSection } from "@/components/landing/FAQSection"
 import { CtaSection } from "@/components/landing/CtaSection"
 
 export default function HomePage() {
@@ -14,11 +16,13 @@ export default function HomePage() {
       <PublicHeader />
       <main className="flex-1">
         <HeroSection />
-        <BenefitsSection />
+        <ProductProofSection />
         <HowItWorksSection />
         <RoutinesSection />
-        <TestimonialsSection />
-        <ContactSection />
+        <BenefitsSection />
+        <ExerciseGuidanceSection />
+        <PricingSection />
+        <FAQSection />
         <CtaSection />
       </main>
       <PublicFooter />

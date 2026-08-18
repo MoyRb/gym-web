@@ -6,11 +6,10 @@
 
 @theme inline {
   --nav-bottom-height: 4rem;
+
+  /* Color aliases for Tailwind utilities */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -40,112 +39,117 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Typography */
+  --font-sans: var(--font-inter, "Inter", ui-sans-serif, system-ui, sans-serif);
+  --font-heading: var(--font-space-grotesk, "Space Grotesk", ui-sans-serif, sans-serif);
+  --font-mono: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+
+  /* Radius — FORGE: tight, systematic (base = 4px) */
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: calc(var(--radius) * 1.0);
+  --radius-lg: calc(var(--radius) * 1.5);
+  --radius-xl: calc(var(--radius) * 2.0);
+  --radius-2xl: calc(var(--radius) * 2.5);
+  --radius-3xl: calc(var(--radius) * 3.0);
+  --radius-4xl: calc(var(--radius) * 4.0);
 }
 
-/* ── FITNESS CLUB Light Theme ──────────────────────────────────────── */
+/* ── ALPHA TRAINER — FORGE Light Theme ──────────────────────── */
 :root {
-  /* Brand: primary=#E11392 (hot pink), secondary=#323E49 (dark steel) */
-  --font-sans: "Inter", "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
-  --font-geist-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-
-  --background: #F7F7F7;
-  --foreground: #1F2937;
+  --background: #FAFAFA;
+  --foreground: #0A0A0B;
 
   --card: #FFFFFF;
-  --card-foreground: #1F2937;
+  --card-foreground: #0A0A0B;
 
   --popover: #FFFFFF;
-  --popover-foreground: #1F2937;
+  --popover-foreground: #0A0A0B;
 
-  /* Primary — FITNESS CLUB pink */
-  --primary: #E11392;
+  --primary: #CF2020;
   --primary-foreground: #FFFFFF;
 
-  /* Secondary — dark steel */
-  --secondary: #323E49;
-  --secondary-foreground: #FFFFFF;
+  --secondary: #F4F4F5;
+  --secondary-foreground: #0A0A0B;
 
-  --muted: #F1F5F9;
-  --muted-foreground: #64748B;
+  --muted: #F4F4F5;
+  --muted-foreground: #71717A;
 
-  --accent: #FDF2F8;
-  --accent-foreground: #1F2937;
+  --accent: #F4F4F5;
+  --accent-foreground: #0A0A0B;
 
   --destructive: #EF4444;
 
-  --border: #E2E8F0;
-  --input: #E2E8F0;
-  --ring: #E11392;
+  --border: rgba(0, 0, 0, 0.08);
+  --input: rgba(0, 0, 0, 0.08);
+  --ring: #CF2020;
 
-  --chart-1: #E11392;
-  --chart-2: #323E49;
-  --chart-3: #F59E0B;
-  --chart-4: #10B981;
-  --chart-5: #6366F1;
+  --chart-1: #CF2020;
+  --chart-2: #059669;
+  --chart-3: #EA580C;
+  --chart-4: #52525B;
+  --chart-5: #D97706;
 
-  --radius: 0.625rem;
+  /* Radius base — 4px */
+  --radius: 0.25rem;
 
-  --sidebar: #FFFFFF;
-  --sidebar-foreground: #1F2937;
-  --sidebar-primary: #E11392;
+  /* Sidebar stays dark even in light mode (Linear/Vercel pattern) */
+  --sidebar: #141415;
+  --sidebar-foreground: #F2F2F3;
+  --sidebar-primary: #CF2020;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #FDF2F8;
-  --sidebar-accent-foreground: #1F2937;
-  --sidebar-border: #E2E8F0;
-  --sidebar-ring: #E11392;
+  --sidebar-accent: #242426;
+  --sidebar-accent-foreground: #F2F2F3;
+  --sidebar-border: rgba(255, 255, 255, 0.05);
+  --sidebar-ring: #CF2020;
 }
 
-/* ── FITNESS CLUB Dark Theme ───────────────────────────────────────── */
+/* ── ALPHA TRAINER — FORGE Dark Theme ───────────────────────── */
 .dark {
-  --background: #1A2228;
-  --foreground: #F8FAFC;
+  --background: #0A0A0B;
+  --foreground: #F2F2F3;
 
-  --card: #222E38;
-  --card-foreground: #F8FAFC;
+  --card: #141415;
+  --card-foreground: #F2F2F3;
 
-  --popover: #222E38;
-  --popover-foreground: #F8FAFC;
+  --popover: #1C1C1E;
+  --popover-foreground: #F2F2F3;
 
-  /* Slightly brighter pink in dark mode */
-  --primary: #F03BA8;
+  --primary: #CF2020;
   --primary-foreground: #FFFFFF;
 
-  --secondary: #2C3A46;
-  --secondary-foreground: #F8FAFC;
+  --secondary: #1C1C1E;
+  --secondary-foreground: #F2F2F3;
 
-  --muted: #2C3A46;
-  --muted-foreground: #94A3B8;
+  --muted: #1C1C1E;
+  --muted-foreground: #8B8B93;
 
-  --accent: #2D1F28;
-  --accent-foreground: #F8FAFC;
+  --accent: #242426;
+  --accent-foreground: #F2F2F3;
 
-  --destructive: #F87171;
+  --destructive: #FC8181;
 
-  --border: rgba(255,255,255,0.1);
-  --input: rgba(255,255,255,0.12);
-  --ring: #F03BA8;
+  --border: rgba(255, 255, 255, 0.10);
+  --input: rgba(255, 255, 255, 0.10);
+  --ring: #CF2020;
 
-  --chart-1: #F03BA8;
-  --chart-2: #94A3B8;
-  --chart-3: #FCD34D;
-  --chart-4: #34D399;
-  --chart-5: #818CF8;
+  --chart-1: #CF2020;
+  --chart-2: #34D399;
+  --chart-3: #F97316;
+  --chart-4: #8B8B93;
+  --chart-5: #FBBF24;
 
-  --sidebar: #1E2B34;
-  --sidebar-foreground: #F8FAFC;
-  --sidebar-primary: #F03BA8;
+  /* Radius base — same in dark */
+  --radius: 0.25rem;
+
+  --sidebar: #141415;
+  --sidebar-foreground: #F2F2F3;
+  --sidebar-primary: #CF2020;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #2D1F28;
-  --sidebar-accent-foreground: #F8FAFC;
-  --sidebar-border: rgba(255,255,255,0.1);
-  --sidebar-ring: #F03BA8;
+  --sidebar-accent: #242426;
+  --sidebar-accent-foreground: #F2F2F3;
+  --sidebar-border: rgba(255, 255, 255, 0.05);
+  --sidebar-ring: #CF2020;
 }
 
 @layer base {
@@ -158,4 +162,35 @@
   html {
     @apply font-sans;
   }
+  /* Headings use Space Grotesk */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+  }
+}
+
+/* ── Reduced motion ──────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── Tabular numbers for metrics ─────────────────────────────── */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Brand ambient float — hero watermark only ───────────────── */
+@keyframes brand-float {
+  0%   { transform: translate(0px,    0px)   scale(1.000); }
+  35%  { transform: translate(6px,  -14px)   scale(1.018); }
+  70%  { transform: translate(-5px,  -7px)   scale(1.010); }
+  100% { transform: translate(0px,    0px)   scale(1.000); }
+}
+
+.animate-brand-float {
+  animation: brand-float 26s ease-in-out infinite;
 }

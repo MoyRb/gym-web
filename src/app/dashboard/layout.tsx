@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation"
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar"
+import { BrandBackground } from "@/components/layout/BrandBackground"
 import { createClient } from "@/lib/supabase/server"
 
 export const metadata = {
@@ -22,8 +23,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <DashboardSidebar isAdmin={isAdmin} />
-      <main className="flex-1 overflow-y-auto pb-[calc(var(--nav-bottom-height)+env(safe-area-inset-bottom,0px))] md:pb-0">
-        <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+      <main className="relative flex-1 overflow-y-auto pb-[calc(var(--nav-bottom-height)+env(safe-area-inset-bottom,0px))] md:pb-0">
+        <BrandBackground variant="app" />
+        <div className="relative mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
           {children}
         </div>
       </main>

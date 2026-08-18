@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import { getExerciseGifSignedUrl } from "@/lib/supabase/media"
+import { getExerciseGifData } from "@/lib/supabase/media"
 import { PageHeader } from "@/components/dashboard/PageHeader"
 
 // ── Traducciones de presentación ──────────────────────────────────────────────
@@ -126,10 +126,10 @@ export default async function ExerciseDetailPage({
 
   const steps = resolveSteps(exercise.instruction_steps, exercise.instructions)
 
-  // Signed URL para GIF (server-side, no expone service_role al cliente).
-  // Solo retorna URL cuando license_status IN ('licensed','owned') AND is_active=true.
-  // Con GIF pendientes (license_status='pending') siempre retorna null.
-  const gifUrl = await getExerciseGifSignedUrl(exercise.id)
+  // Datos del GIF: signed URL + attribution.
+  // Generados server-side; service_role nunca llega al cliente.
+  // Retorna null cuando license_status='pending' o is_active=false.
+  const gifData = await getExerciseGifData(exercise.id)
 
   return (
     <div className="flex flex-col gap-6">
@@ -138,6 +138,37 @@ export default async function ExerciseDetailPage({
         backHref="/dashboard/exercises"
         backLabel="Catálogo"
       />
+
+      {/* Demostración visual — posición prominente, antes de metadata */}
+      <div className="flex flex-col items-center gap-2">
+        {gifData ? (
+          <>
+            <div className="relative w-full max-w-xs mx-auto overflow-hidden rounded-xl border border-border bg-muted/30 aspect-square">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={gifData.url}
+                alt={`Demostración de ${exercise.name}`}
+                className="h-full w-full object-contain motion-reduce:hidden"
+              />
+              {/* Fallback de texto para prefers-reduced-motion */}
+              <p className="absolute inset-0 hidden motion-reduce:flex items-center justify-center text-xs text-muted-foreground text-center px-4">
+                Demostración de {exercise.name}
+              </p>
+            </div>
+            {gifData.attribution && (
+              <p className="text-[10px] text-muted-foreground/50 text-center">
+                {gifData.attribution}
+              </p>
+            )}
+          </>
+        ) : (
+          <div className="w-full max-w-xs mx-auto rounded-xl border border-border bg-muted/20 aspect-square flex items-center justify-center">
+            <p className="text-xs text-muted-foreground/60 text-center px-6">
+              Demostración no disponible
+            </p>
+          </div>
+        )}
+      </div>
 
       {/* Metadata */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -186,25 +217,6 @@ export default async function ExerciseDetailPage({
           </p>
         )}
       </div>
-
-      {/* Demostración visual */}
-      {gifUrl ? (
-        <div className="flex flex-col gap-2">
-          <h2 className="text-sm font-semibold">Demostración</h2>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={gifUrl}
-            alt={`Demostración de ${exercise.name}`}
-            width={180}
-            height={180}
-            className="rounded-lg border border-border object-contain"
-          />
-        </div>
-      ) : (
-        <p className="text-xs text-muted-foreground/60 text-center py-2">
-          Demostración visual no disponible en este momento.
-        </p>
-      )}
     </div>
   )
 }

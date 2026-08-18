@@ -7,9 +7,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   return (
     <NextThemesProvider
       attribute="class"
-      defaultTheme="system"
+      defaultTheme="dark"
       enableSystem
-      storageKey="fitness-club-theme"
+      storageKey="alpha-trainer-theme"
       disableTransitionOnChange
     >
       {children}

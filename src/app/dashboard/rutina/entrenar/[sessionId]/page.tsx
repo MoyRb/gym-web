@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback, useRef } from "react"
+import { useEffect, useState, useCallback, useRef, memo } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import {
@@ -98,6 +98,61 @@ function RestTimer({
     </div>
   )
 }
+
+// ── Exercise GIF ──────────────────────────────────────────────────────────────
+// Carga el GIF via API route server-side (signed URL). El service_role nunca
+// llega al cliente. Hace UN fetch por ejercicio al montar el card.
+
+const ExerciseGif = memo(function ExerciseGif({
+  exerciseId,
+  exerciseName,
+}: {
+  exerciseId: string
+  exerciseName: string
+}) {
+  const [status, setStatus]   = useState<"loading" | "ready" | "none">("loading")
+  const [gifUrl, setGifUrl]   = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    fetch(`/api/exercises/${exerciseId}/gif`)
+      .then((r) => (r.ok ? (r.json() as Promise<{ url: string | null }>) : null))
+      .then((data) => {
+        if (cancelled) return
+        if (data?.url) {
+          setGifUrl(data.url)
+          setStatus("ready")
+        } else {
+          setStatus("none")
+        }
+      })
+      .catch(() => { if (!cancelled) setStatus("none") })
+    return () => { cancelled = true }
+  }, [exerciseId])
+
+  if (status === "loading") {
+    return (
+      <div
+        aria-hidden="true"
+        className="mx-auto mt-3 h-40 w-40 rounded-lg bg-muted animate-pulse"
+      />
+    )
+  }
+
+  if (status === "none" || !gifUrl) return null
+
+  return (
+    <div className="mt-3 flex justify-center">
+      {/* next/image no soporta GIFs animados correctamente — se usa <img> */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={gifUrl}
+        alt={`Demostración de ${exerciseName}`}
+        className="h-40 w-40 rounded-lg border border-border object-contain bg-muted/30 motion-reduce:hidden"
+      />
+    </div>
+  )
+})
 
 // ── Set Row ───────────────────────────────────────────────────────────────────
 
@@ -249,6 +304,12 @@ function ExerciseCard({
             <ChevronRight className="h-4 w-4" />
           </Link>
         </div>
+
+        {/* GIF de demostración — visible para entender el movimiento */}
+        <ExerciseGif
+          exerciseId={exercise.exercise_id}
+          exerciseName={exercise.exercise.name}
+        />
 
         {/* Column headers */}
         <div className="mt-3 grid grid-cols-[2rem_1fr_1fr_1fr_2.5rem] gap-1.5 px-2">

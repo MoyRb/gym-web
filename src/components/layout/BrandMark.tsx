@@ -1,34 +1,37 @@
-import Link from "next/link"
+import { AlphaTrainerLogo } from "@/components/layout/AlphaTrainerLogo"
 import { cn } from "@/lib/utils"
 
+/**
+ * BrandMark — thin wrapper kept for backward compatibility.
+ * Delegates to AlphaTrainerLogo with appropriate variant per context.
+ */
 interface BrandMarkProps {
   href?: string
   className?: string
   variant?: "header" | "hero" | "auth" | "sidebar"
 }
 
-const variantStyles = {
-  header: "text-xl sm:text-2xl",
-  hero: "text-3xl sm:text-4xl lg:text-5xl",
-  auth: "text-xl sm:text-2xl",
-  sidebar: "text-lg",
+const heightMap = {
+  header: 26,
+  hero: 44,
+  auth: 28,
+  sidebar: 24,
 } as const
 
-export function BrandMark({ href = "/", className, variant = "header" }: BrandMarkProps) {
-  const content = (
-    <span
-      className={cn(
-        "inline-flex items-baseline gap-1 font-black uppercase tracking-[0.08em] leading-none",
-        variantStyles[variant],
-        className
-      )}
-      aria-label="FITNESS CLUB"
-    >
-      <span className="text-primary">FITNESS</span>
-      <span className="text-foreground">CLUB</span>
-    </span>
-  )
+const variantMap = {
+  header: "auto",
+  hero: "accent",
+  auth: "light",
+  sidebar: "light",
+} as const
 
-  if (!href) return content
-  return <Link href={href}>{content}</Link>
+export function BrandMark({ href, className, variant = "header" }: BrandMarkProps) {
+  return (
+    <AlphaTrainerLogo
+      href={href}
+      variant={variantMap[variant] as "auto" | "accent" | "light" | "dark"}
+      height={heightMap[variant]}
+      className={cn(className)}
+    />
+  )
 }

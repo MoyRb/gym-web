@@ -1,28 +1,48 @@
 import Link from "next/link"
-import { MapPin, Phone, Mail, Clock } from "lucide-react"
-import { BrandMark } from "@/components/layout/BrandMark"
+import { AlphaTrainerLogo } from "@/components/layout/AlphaTrainerLogo"
 import { siteConfig } from "@/config/site"
+
+const footerLinks = {
+  producto: [
+    { label: "Dashboard", href: "/dashboard" },
+    { label: "Ejercicios", href: "/dashboard/exercises" },
+    { label: "Mi plan", href: "/dashboard/rutina" },
+    { label: "Progreso", href: "/dashboard/progress" },
+  ],
+  cuenta: [
+    { label: "Crear cuenta", href: "/register" },
+    { label: "Iniciar sesión", href: "/login" },
+  ],
+  legal: [
+    { label: "Privacidad", href: "#" },
+    { label: "Términos", href: "#" },
+  ],
+}
 
 export function PublicFooter() {
   return (
-    <footer className="border-t border-border bg-secondary text-secondary-foreground">
+    <footer className="border-t border-border bg-card">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="flex flex-col gap-4">
-            <div className="inline-flex w-fit rounded-xl bg-white/90 px-3 py-2">
-              <BrandMark variant="auth" />
-            </div>
-            <p className="text-sm leading-relaxed text-secondary-foreground/70">{siteConfig.slogan}</p>
+        <div className="grid grid-cols-2 gap-8 sm:grid-cols-4 lg:gap-12">
+          {/* Brand column */}
+          <div className="col-span-2 flex flex-col gap-4 sm:col-span-1">
+            <AlphaTrainerLogo variant="auto" height={24} />
+            <p className="text-sm leading-relaxed text-muted-foreground max-w-xs">
+              {siteConfig.slogan}
+            </p>
           </div>
 
+          {/* Producto */}
           <div>
-            <h3 className="mb-4 text-sm font-semibold text-secondary-foreground">Menú</h3>
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              Producto
+            </h3>
             <ul className="flex flex-col gap-2">
-              {siteConfig.navigation.map((link) => (
-                <li key={link.href}>
+              {footerLinks.producto.map((link) => (
+                <li key={link.label}>
                   <Link
-                    href={`/${link.href}`}
-                    className="text-sm text-secondary-foreground/70 transition-colors hover:text-primary"
+                    href={link.href}
+                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                   >
                     {link.label}
                   </Link>
@@ -31,43 +51,51 @@ export function PublicFooter() {
             </ul>
           </div>
 
+          {/* Cuenta */}
           <div>
-            <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-secondary-foreground">
-              <Clock className="h-4 w-4 text-primary" /> Horarios
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              Cuenta
             </h3>
             <ul className="flex flex-col gap-2">
-              {siteConfig.contact.hours.map((h) => (
-                <li key={h.days} className="text-sm text-secondary-foreground/70">
-                  <span className="font-medium text-secondary-foreground">{h.days}</span>
-                  <br />
-                  {h.time}
+              {footerLinks.cuenta.map((link) => (
+                <li key={link.label}>
+                  <Link
+                    href={link.href}
+                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    {link.label}
+                  </Link>
                 </li>
               ))}
             </ul>
           </div>
 
+          {/* Legal */}
           <div>
-            <h3 className="mb-4 text-sm font-semibold text-secondary-foreground">Contacto</h3>
-            <ul className="flex flex-col gap-3">
-              <li className="flex items-center gap-2 text-sm text-secondary-foreground/70">
-                <Phone className="h-4 w-4 shrink-0 text-primary" />
-                {siteConfig.contact.phone}
-              </li>
-              <li className="flex items-center gap-2 text-sm text-secondary-foreground/70">
-                <Mail className="h-4 w-4 shrink-0 text-primary" />
-                {siteConfig.contact.email}
-              </li>
-              <li className="flex items-start gap-2 text-sm text-secondary-foreground/70">
-                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                {siteConfig.contact.address}
-              </li>
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              Legal
+            </h3>
+            <ul className="flex flex-col gap-2">
+              {footerLinks.legal.map((link) => (
+                <li key={link.label}>
+                  <Link
+                    href={link.href}
+                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
         </div>
 
-        <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-6 sm:flex-row">
-          <p className="text-xs text-secondary-foreground/50">
+        <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-border pt-6 sm:flex-row">
+          <p className="text-xs text-muted-foreground">
             © {new Date().getFullYear()} {siteConfig.name}. Todos los derechos reservados.
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Impulsado por IA
           </p>
         </div>
       </div>

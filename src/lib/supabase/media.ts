@@ -17,19 +17,26 @@ import { createServiceRoleClient } from "@/lib/supabase/server"
 const BUCKET           = "exercise-media"
 const SIGNED_URL_TTL_S = 3600 // 1 hora
 
+export type ExerciseGifData = {
+  /** Signed URL con TTL de 1 hora. */
+  url: string
+  /** Texto de atribución del asset, si existe en la metadata. */
+  attribution: string | null
+}
+
 /**
- * Devuelve una signed URL para el GIF principal del ejercicio,
+ * Devuelve signed URL + attribution para el GIF principal del ejercicio,
  * o null si no hay media activa/autorizada.
  */
-export async function getExerciseGifSignedUrl(
+export async function getExerciseGifData(
   exerciseId: string
-): Promise<string | null> {
+): Promise<ExerciseGifData | null> {
   const service = createServiceRoleClient()
 
   // Solo media activa con licencia válida
   const { data, error } = await service
     .from("exercise_media")
-    .select("storage_path")
+    .select("storage_path, attribution")
     .eq("exercise_id", exerciseId)
     .eq("kind", "gif")
     .eq("is_active", true)
@@ -45,5 +52,22 @@ export async function getExerciseGifSignedUrl(
     .createSignedUrl(data.storage_path, SIGNED_URL_TTL_S)
 
   if (signErr || !signed?.signedUrl) return null
-  return signed.signedUrl
+
+  return {
+    url:         signed.signedUrl,
+    attribution: (data.attribution as string | null) ?? null,
+  }
+}
+
+/**
+ * Devuelve únicamente la signed URL para el GIF principal del ejercicio,
+ * o null si no existe media activa/autorizada.
+ *
+ * Mantiene la firma original para compatibilidad con llamadores existentes.
+ */
+export async function getExerciseGifSignedUrl(
+  exerciseId: string
+): Promise<string | null> {
+  const gifData = await getExerciseGifData(exerciseId)
+  return gifData?.url ?? null
 }
