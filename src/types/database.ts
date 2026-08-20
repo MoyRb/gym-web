@@ -241,6 +241,12 @@ export interface Database {
           event_type: string
           metadata: Json
           created_at: string
+          schema_version: number
+          occurred_at: string
+          workout_session_id: string | null
+          workout_plan_id: string | null
+          exercise_id: string | null
+          dedupe_key: string | null
         }
         Insert: {
           id?: string
@@ -248,10 +254,22 @@ export interface Database {
           event_type: string
           metadata?: Json
           created_at?: string
+          schema_version?: number
+          occurred_at?: string
+          workout_session_id?: string | null
+          workout_plan_id?: string | null
+          exercise_id?: string | null
+          dedupe_key?: string | null
         }
         Update: {
           event_type?: string
           metadata?: Json
+          schema_version?: number
+          occurred_at?: string
+          workout_session_id?: string | null
+          workout_plan_id?: string | null
+          exercise_id?: string | null
+          dedupe_key?: string | null
         }
         Relationships: []
       }

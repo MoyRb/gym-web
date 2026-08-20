@@ -98,6 +98,27 @@ export interface UserStats {
   by_role: Array<{ role: string; count: number }>
 }
 
+export interface ProductStats {
+  dau: number
+  wau: number
+  mau: number
+  event_counts: Array<{
+    event_type: string
+    c24h: number
+    c7d: number
+    c30d: number
+    total: number
+  }>
+}
+
+export interface FunnelStats {
+  signups: number
+  profiles: number
+  plans: number
+  sessions: number
+  completions: number
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const EMPTY_OVERVIEW: OverviewStats = {
@@ -129,6 +150,14 @@ const EMPTY_AI: AiStats = {
 const EMPTY_USERS: UserStats = {
   total_users: 0, users_with_active_plan: 0, users_with_any_session: 0,
   by_goal: [], by_experience: [], by_days_per_week: [], by_sex: [], by_role: [],
+}
+
+const EMPTY_PRODUCT: ProductStats = {
+  dau: 0, wau: 0, mau: 0, event_counts: [],
+}
+
+const EMPTY_FUNNEL: FunnelStats = {
+  signups: 0, profiles: 0, plans: 0, sessions: 0, completions: 0,
 }
 
 // ── Query functions ───────────────────────────────────────────────────────────
@@ -181,4 +210,18 @@ export async function getUserStats(): Promise<UserStats> {
   const { data, error } = await service.rpc("admin_get_user_stats" as never)
   if (error || !data) return EMPTY_USERS
   return data as UserStats
+}
+
+export async function getProductStats(): Promise<ProductStats> {
+  const service = createServiceRoleClient()
+  const { data, error } = await service.rpc("admin_get_product_stats" as never)
+  if (error || !data) return EMPTY_PRODUCT
+  return data as ProductStats
+}
+
+export async function getFunnelStats(): Promise<FunnelStats> {
+  const service = createServiceRoleClient()
+  const { data, error } = await service.rpc("admin_get_funnel_stats" as never)
+  if (error || !data) return EMPTY_FUNNEL
+  return data as FunnelStats
 }

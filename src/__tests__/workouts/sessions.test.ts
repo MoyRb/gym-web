@@ -43,7 +43,7 @@ vi.mock("@/lib/supabase/server", () => ({
 
 import { startWorkoutSession } from "@/lib/workouts/sessions/start-session"
 import { completeSession }      from "@/lib/workouts/sessions/complete-session"
-import { SetUpdateSchema }      from "@/lib/workouts/sessions/update-set"
+import { SetUpdateSchema, updateSet } from "@/lib/workouts/sessions/update-set"
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -494,6 +494,139 @@ describe("Cancelled session", () => {
     const payload = updateFn.mock.calls[0][0] as { status: string; completed_at?: string }
     expect(payload.status).toBe("cancelled")
     expect(payload.completed_at).toBeUndefined()
+  })
+})
+
+// ── updateSet ─────────────────────────────────────────────────────────────────
+
+const SET_ID     = "set-aaa"
+const SESSION_ID = "sess-bbb"
+const WSE_ID     = "wse-ccc"
+const USER_ID    = "user-ddd"
+
+/** Mocks one `from().select(...).eq(...).maybeSingle()` call in sequence */
+function mockSelectOnce(data: unknown, error: unknown = null) {
+  const chain = { eq: vi.fn(), maybeSingle: vi.fn() }
+  chain.eq.mockReturnValue(chain)
+  chain.maybeSingle.mockResolvedValue({ data, error })
+  mockFrom.mockReturnValueOnce({ select: vi.fn().mockReturnValue(chain) })
+  return chain
+}
+
+/** Mocks one `from().update(...).eq(...)` call in sequence */
+function mockUpdateOnce(error: unknown = null) {
+  const eqFn = vi.fn().mockResolvedValue({ error })
+  const updateFn = vi.fn().mockReturnValue({ eq: eqFn })
+  mockFrom.mockReturnValueOnce({ update: updateFn })
+  return updateFn
+}
+
+/** Sets up the full happy-path mock chain for updateSet */
+function mockHappyPath() {
+  mockSelectOnce({ id: SET_ID, workout_session_exercise_id: WSE_ID })          // step 1: set
+  mockSelectOnce({ workout_session_id: SESSION_ID })                            // step 2: wse
+  mockSelectOnce({ user_id: USER_ID, status: "in_progress" })                  // step 3: session
+  return mockUpdateOnce(null)                                                   // step 4: update
+}
+
+describe("updateSet", () => {
+  it("succeeds on happy path and calls update with completed fields", async () => {
+    const updateFn = mockHappyPath()
+
+    await updateSet(SET_ID, SESSION_ID, USER_ID, { completed: true, reps: 10, weight_kg: 60 })
+
+    expect(updateFn).toHaveBeenCalledTimes(1)
+    const payload = updateFn.mock.calls[0][0] as Record<string, unknown>
+    expect(payload.completed).toBe(true)
+    expect(payload.completed_at).toBeDefined()
+    expect(payload.reps).toBe(10)
+    expect(payload.weight_kg).toBe(60)
+  })
+
+  it("throws internal error (not 404) when step 1 returns a DB error", async () => {
+    mockSelectOnce(null, { code: "PGRST301", message: "join failed", details: null, hint: null })
+
+    await expect(
+      updateSet(SET_ID, SESSION_ID, USER_ID, { completed: true }),
+    ).rejects.toThrow("Error interno al buscar la serie")
+  })
+
+  it("throws Serie no encontrada when set row is missing", async () => {
+    mockSelectOnce(null, null)   // step 1: no data, no error
+
+    await expect(
+      updateSet(SET_ID, SESSION_ID, USER_ID, { completed: true }),
+    ).rejects.toThrow("Serie no encontrada")
+  })
+
+  it("throws internal error when step 2 (wse lookup) has DB error", async () => {
+    mockSelectOnce({ id: SET_ID, workout_session_exercise_id: WSE_ID })
+    mockSelectOnce(null, { code: "PGRST301", message: "wse error", details: null, hint: null })
+
+    await expect(
+      updateSet(SET_ID, SESSION_ID, USER_ID, { completed: true }),
+    ).rejects.toThrow("Error interno al verificar la serie")
+  })
+
+  it("throws Serie no encontrada when sessionId does not match the set's session", async () => {
+    mockSelectOnce({ id: SET_ID, workout_session_exercise_id: WSE_ID })
+    mockSelectOnce({ workout_session_id: "different-session" })
+
+    await expect(
+      updateSet(SET_ID, SESSION_ID, USER_ID, { completed: true }),
+    ).rejects.toThrow("Serie no encontrada")
+  })
+
+  it("throws No autorizado when user_id mismatches", async () => {
+    mockSelectOnce({ id: SET_ID, workout_session_exercise_id: WSE_ID })
+    mockSelectOnce({ workout_session_id: SESSION_ID })
+    mockSelectOnce({ user_id: "another-user", status: "in_progress" })
+
+    await expect(
+      updateSet(SET_ID, SESSION_ID, USER_ID, { completed: true }),
+    ).rejects.toThrow("No autorizado")
+  })
+
+  it("throws session not in progress when status is completed", async () => {
+    mockSelectOnce({ id: SET_ID, workout_session_exercise_id: WSE_ID })
+    mockSelectOnce({ workout_session_id: SESSION_ID })
+    mockSelectOnce({ user_id: USER_ID, status: "completed" })
+
+    await expect(
+      updateSet(SET_ID, SESSION_ID, USER_ID, { completed: true }),
+    ).rejects.toThrow("no está en progreso")
+  })
+
+  it("throws session not in progress when status is cancelled", async () => {
+    mockSelectOnce({ id: SET_ID, workout_session_exercise_id: WSE_ID })
+    mockSelectOnce({ workout_session_id: SESSION_ID })
+    mockSelectOnce({ user_id: USER_ID, status: "cancelled" })
+
+    await expect(
+      updateSet(SET_ID, SESSION_ID, USER_ID, { completed: true }),
+    ).rejects.toThrow("no está en progreso")
+  })
+
+  it("does nothing when payload is empty (no fields)", async () => {
+    mockSelectOnce({ id: SET_ID, workout_session_exercise_id: WSE_ID })
+    mockSelectOnce({ workout_session_id: SESSION_ID })
+    mockSelectOnce({ user_id: USER_ID, status: "in_progress" })
+    // No update mock — update should NOT be called
+
+    await expect(updateSet(SET_ID, SESSION_ID, USER_ID, {})).resolves.toBeUndefined()
+    // mockFrom should NOT have been called a 4th time for update
+    // (only 3 select calls above)
+  })
+
+  it("throws on DB update error", async () => {
+    mockSelectOnce({ id: SET_ID, workout_session_exercise_id: WSE_ID })
+    mockSelectOnce({ workout_session_id: SESSION_ID })
+    mockSelectOnce({ user_id: USER_ID, status: "in_progress" })
+    mockUpdateOnce({ message: "constraint violation" })
+
+    await expect(
+      updateSet(SET_ID, SESSION_ID, USER_ID, { reps: 8 }),
+    ).rejects.toThrow("Error actualizando serie")
   })
 })
 

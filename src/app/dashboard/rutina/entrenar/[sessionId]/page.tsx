@@ -11,14 +11,19 @@ import {
   Dumbbell,
   Loader2,
   Plus,
+  Share2,
   SkipForward,
   RotateCcw,
   X,
 } from "lucide-react"
+import { toast } from "sonner"
 import { createClient } from "@/lib/supabase/client"
 import { getUserSafely } from "@/lib/supabase/auth-helpers"
 import { Button } from "@/components/ui/button"
 import type { WorkoutSessionWithExercises, WorkoutSetRow } from "@/types/database"
+import { WorkoutShareDialog } from "@/components/share/WorkoutShareDialog"
+import { normalizeWorkoutShareData } from "@/components/share/normalize"
+import { analytics } from "@/utils/analytics"
 
 // ── Formatters ────────────────────────────────────────────────────────────────
 
@@ -187,6 +192,8 @@ interface SetState {
   rir: string
   completed: boolean
   saving: boolean
+  /** true when the last PATCH attempt failed — allows retry, blocks Finalizar */
+  failed: boolean
 }
 
 const INPUT_CLS =
@@ -268,6 +275,13 @@ function SetRow({
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
         ) : localState.completed ? (
           <CheckCircle2 className="h-6 w-6 text-primary" />
+        ) : localState.failed ? (
+          <span
+            className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-destructive/70 transition-colors hover:border-destructive"
+            title="Error al guardar — toca para reintentar"
+          >
+            <span className="sr-only">Reintentar</span>
+          </span>
         ) : (
           <span className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-muted-foreground/30 transition-colors hover:border-primary/50">
             <span className="sr-only">Completar</span>
@@ -372,6 +386,7 @@ function ExerciseCard({
                   rir:       set.rir       != null ? String(set.rir)       : "",
                   completed: set.completed,
                   saving:    false,
+                  failed:    false,
                 }
               }
               onChange={(field, value) => onSetChange(set.id, field, value)}
@@ -394,6 +409,8 @@ function WorkoutSummary({
   setStates: Map<string, SetState>
 }) {
   const router = useRouter()
+  const [shareOpen, setShareOpen] = useState(false)
+
   const allSets = session.exercises.flatMap((e) => e.sets)
   const completedSets = allSets.filter((s) => setStates.get(s.id)?.completed ?? s.completed)
   const totalReps = completedSets.reduce((acc, s) => {
@@ -419,45 +436,73 @@ function WorkoutSummary({
     { label: "Volumen",      value: `${Math.round(totalVolume)} kg` },
   ]
 
+  // Normalized data for the share card
+  const shareData = normalizeWorkoutShareData(session, setStates)
+
+  const openShare = () => {
+    void analytics.shareCardOpened("achievement")
+    setShareOpen(true)
+  }
+
   return (
-    <div className="flex flex-col items-center gap-8 px-4 py-16 text-center">
-      {/* Check icon */}
-      <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10">
-        <CheckCircle2 className="h-10 w-10 text-primary" />
+    <>
+      <div className="flex flex-col items-center gap-8 px-4 py-16 text-center">
+        {/* Check icon */}
+        <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10">
+          <CheckCircle2 className="h-10 w-10 text-primary" />
+        </div>
+
+        <div>
+          <h2 className="text-2xl font-bold">¡Entrenamiento completado!</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {new Date(session.started_at).toLocaleDateString("es-ES", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+            })}
+          </p>
+        </div>
+
+        {/* Stats 2×2 */}
+        <div className="grid w-full max-w-xs grid-cols-2 gap-3">
+          {stats.map(({ label, value }) => (
+            <div key={label} className="rounded-xl border border-border bg-card p-4">
+              <p className="tabular text-2xl font-bold">{value}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{label}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex w-full max-w-xs flex-col gap-3">
+          {/* Primary CTA: share */}
+          <Button
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
+            onClick={openShare}
+          >
+            <Share2 className="mr-2 h-4 w-4" />
+            Compartir resultado
+          </Button>
+
+          <Button className="bg-primary/10 text-primary hover:bg-primary/20 border-0"
+            onClick={() => router.push("/dashboard/progress")}
+          >
+            Ver mi progreso
+          </Button>
+          <Button variant="outline" onClick={() => router.push("/dashboard/rutina")}>
+            Volver a mi rutina
+          </Button>
+        </div>
       </div>
 
-      <div>
-        <h2 className="text-2xl font-bold">¡Entrenamiento completado!</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {new Date(session.started_at).toLocaleDateString("es-ES", {
-            weekday: "long",
-            day: "numeric",
-            month: "long",
-          })}
-        </p>
-      </div>
-
-      {/* Stats 2×2 */}
-      <div className="grid w-full max-w-xs grid-cols-2 gap-3">
-        {stats.map(({ label, value }) => (
-          <div key={label} className="rounded-xl border border-border bg-card p-4">
-            <p className="tabular text-2xl font-bold">{value}</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">{label}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="flex w-full max-w-xs flex-col gap-3">
-        <Button className="bg-primary text-primary-foreground hover:bg-primary/90"
-          onClick={() => router.push("/dashboard/progress")}
-        >
-          Ver mi progreso
-        </Button>
-        <Button variant="outline" onClick={() => router.push("/dashboard/rutina")}>
-          Volver a mi rutina
-        </Button>
-      </div>
-    </div>
+      {/* Share dialog — rendered outside the summary scroll area */}
+      <WorkoutShareDialog
+        data={shareData}
+        session={session}
+        setStates={setStates}
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+      />
+    </>
   )
 }
 
@@ -551,6 +596,7 @@ export default function TrainingPage() {
             rir:       s.rir       != null ? String(s.rir)       : "",
             completed: s.completed,
             saving:    false,
+            failed:    false,
           })
         }
       }
@@ -597,12 +643,14 @@ export default function TrainingPage() {
 
   const handleSetComplete = async (setId: string, restSeconds: number) => {
     const state = setStates.get(setId)
+    // Allow retry when failed (saving=false, completed=false, failed=true)
     if (!state || state.completed || state.saving) return
 
+    // Mark saving, clear any previous failed flag
     setSetStates((prev) => {
       const next = new Map(prev)
       const cur = next.get(setId)
-      if (cur) next.set(setId, { ...cur, saving: true })
+      if (cur) next.set(setId, { ...cur, saving: true, failed: false })
       return next
     })
 
@@ -621,19 +669,25 @@ export default function TrainingPage() {
       })
 
       if (!res.ok) {
+        // Read error body so the connection is consumed, then surface it
+        const body = await res.json().catch(() => ({})) as { error?: string }
+        const msg = body.error ?? "Error desconocido"
+        console.error("[handleSetComplete] PATCH failed", { status: res.status, error: msg })
+
         setSetStates((prev) => {
           const next = new Map(prev)
           const cur = next.get(setId)
-          if (cur) next.set(setId, { ...cur, saving: false })
+          if (cur) next.set(setId, { ...cur, saving: false, failed: true })
           return next
         })
+        toast.error("No pudimos guardar esta serie. Tus datos siguen aquí; intenta nuevamente.")
         return
       }
 
       setSetStates((prev) => {
         const next = new Map(prev)
         const cur = next.get(setId)
-        if (cur) next.set(setId, { ...cur, completed: true, saving: false })
+        if (cur) next.set(setId, { ...cur, completed: true, saving: false, failed: false })
         return next
       })
 
@@ -644,9 +698,10 @@ export default function TrainingPage() {
       setSetStates((prev) => {
         const next = new Map(prev)
         const cur = next.get(setId)
-        if (cur) next.set(setId, { ...cur, saving: false })
+        if (cur) next.set(setId, { ...cur, saving: false, failed: true })
         return next
       })
+      toast.error("No pudimos guardar esta serie. Tus datos siguen aquí; intenta nuevamente.")
     }
   }
 
@@ -705,12 +760,17 @@ export default function TrainingPage() {
 
   // ── Training state ──────────────────────────────────────────────────────────
 
-  const totalSets     = session.exercises.flatMap((e) => e.sets).length
-  const completedSets = session.exercises
-    .flatMap((e) => e.sets)
-    .filter((s) => setStates.get(s.id)?.completed ?? s.completed).length
+  const allSets       = session.exercises.flatMap((e) => e.sets)
+  const totalSets     = allSets.length
+  const completedSets = allSets.filter((s) => setStates.get(s.id)?.completed ?? s.completed).length
   const incompleteSets = totalSets - completedSets
   const hasIncomplete  = incompleteSets > 0
+
+  // Block Finalizar while any set is saving or has an unacknowledged save error
+  const allSetStateValues = [...setStates.values()]
+  const hasSaving = allSetStateValues.some((s) => s.saving)
+  const hasFailed = allSetStateValues.some((s) => s.failed)
+  const failedCount = allSetStateValues.filter((s) => s.failed).length
 
   // Focus mode — covers sidebar and mobile bottom nav
   return (
@@ -789,9 +849,16 @@ export default function TrainingPage() {
                 <p className="text-center text-sm text-muted-foreground">
                   {incompleteSets}{" "}
                   {incompleteSets === 1 ? "serie sin completar" : "series sin completar"}.
-                  ¿Finalizar igualmente?
                 </p>
               )}
+              {hasFailed && (
+                <p className="text-center text-sm text-destructive">
+                  {failedCount}{" "}
+                  {failedCount === 1 ? "serie con error de guardado" : "series con error de guardado"}.
+                  Puedes reintentar o finalizar de todas formas.
+                </p>
+              )}
+              <p className="text-center text-sm text-muted-foreground">¿Finalizar igualmente?</p>
               <div className="flex gap-2">
                 <Button
                   variant="outline"
@@ -814,37 +881,50 @@ export default function TrainingPage() {
               </div>
             </div>
           ) : (
-            <div className="flex gap-2">
-              {/* Cancel workout */}
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-destructive hover:text-destructive"
-                onClick={() => void handleFinish("cancel")}
-                disabled={finishing}
-                aria-label="Cancelar entrenamiento"
-              >
-                <X className="h-4 w-4" />
-              </Button>
+            <div className="flex flex-col gap-1.5">
+              {hasSaving && (
+                <p className="text-center text-xs text-muted-foreground">
+                  Guardando series…
+                </p>
+              )}
+              {hasFailed && !hasSaving && (
+                <p className="text-center text-xs text-destructive">
+                  {failedCount}{" "}
+                  {failedCount === 1 ? "serie con error" : "series con error"} — toca el círculo rojo para reintentar.
+                </p>
+              )}
+              <div className="flex gap-2">
+                {/* Cancel workout */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-destructive hover:text-destructive"
+                  onClick={() => void handleFinish("cancel")}
+                  disabled={finishing || hasSaving}
+                  aria-label="Cancelar entrenamiento"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
 
-              {/* Finish */}
-              <Button
-                className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
-                onClick={() => {
-                  if (hasIncomplete) {
-                    setConfirmFinish(true)
-                  } else {
-                    void handleFinish("complete")
-                  }
-                }}
-                disabled={finishing}
-              >
-                {finishing ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  "Finalizar entrenamiento"
-                )}
-              </Button>
+                {/* Finish */}
+                <Button
+                  className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
+                  onClick={() => {
+                    if (hasIncomplete || hasFailed) {
+                      setConfirmFinish(true)
+                    } else {
+                      void handleFinish("complete")
+                    }
+                  }}
+                  disabled={finishing || hasSaving}
+                >
+                  {finishing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Finalizar entrenamiento"
+                  )}
+                </Button>
+              </div>
             </div>
           )}
         </div>

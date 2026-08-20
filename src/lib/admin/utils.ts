@@ -97,3 +97,27 @@ export function formatGrowth(pct: number | null): { text: string; positive: bool
     positive: pct > 0,
   }
 }
+
+/**
+ * Format a product analytics event_type to a human-readable Spanish label.
+ * Returns the raw event_type for unknown events.
+ */
+export function formatEventLabel(eventType: string): string {
+  const labels: Record<string, string> = {
+    workout_started:          "Workout iniciado",
+    workout_completed:        "Workout completado",
+    workout_cancelled:        "Workout cancelado",
+    set_completed:            "Serie completada",
+    exercise_viewed:          "Ejercicio visto",
+    exercise_searched:        "Búsqueda ejercicio",
+    ai_generation_started:    "Generación AI iniciada",
+    ai_generation_completed:  "Generación AI completada",
+    ai_generation_failed:     "Generación AI fallida",
+    register:                 "Registro",
+    login:                    "Login",
+    profile_completed:        "Perfil completado",
+    routine_viewed:           "Rutina vista",
+    pdf_downloaded:           "PDF descargado",
+  }
+  return labels[eventType] ?? eventType
+}

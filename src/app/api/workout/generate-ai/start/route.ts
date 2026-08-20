@@ -25,6 +25,8 @@
  */
 
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server"
+import { trackServerEvent } from "@/lib/analytics/server"
+import { EVENTS } from "@/lib/analytics/events"
 import { toUserProfile } from "@/lib/fitness-data"
 import { buildWorkoutSplit, buildBatches } from "@/lib/workouts/ai/workout-split"
 import { getCandidateExercises } from "@/lib/workouts/ai/candidate-exercises"
@@ -168,6 +170,20 @@ export async function POST() {
 
   const generationId = session.id
 
+  // Track generation started (fire and forget)
+  void trackServerEvent({
+    name: EVENTS.AI_GENERATION_STARTED,
+    userId: user.id,
+    workoutPlanId: draftPlanId,
+    metadata: {
+      generation_id: generationId,
+      total_batches: totalBatches,
+      goal: profile.objetivo,
+      experience: profile.experiencia,
+    },
+    dedupeKey: `ai_gen_started:${generationId}`,
+  })
+
   // 8. Process batch 0 — AI selects IDs, backend prescribes values
   const batch0 = batches[0]
   const batch0Candidates = getCandidatesForBatch(allCandidates, batch0)
@@ -240,14 +256,22 @@ export async function POST() {
       // completedBatches stays 0 — client calls /next to retry batch 0
     } else {
       // Mark session failed — non-retryable
+      const errorMessage = err instanceof Error ? err.message : "unknown"
       await serviceClient
         .from("ai_generation_sessions")
         .update({
           status: "failed",
-          error_message: err instanceof Error ? err.message : "unknown",
+          error_message: errorMessage,
           updated_at: new Date().toISOString(),
         })
         .eq("id", generationId)
+
+      void trackServerEvent({
+        name: EVENTS.AI_GENERATION_FAILED,
+        userId: user.id,
+        workoutPlanId: draftPlanId,
+        metadata: { generation_id: generationId, error: errorMessage },
+      })
 
       return Response.json(
         { error: "Error generando el primer lote de ejercicios. Intenta de nuevo." },

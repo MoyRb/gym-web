@@ -1,6 +1,8 @@
 import { z } from "zod"
 import { createClient } from "@/lib/supabase/server"
 import { startWorkoutSession } from "@/lib/workouts/sessions/start-session"
+import { trackServerEvent } from "@/lib/analytics/server"
+import { EVENTS } from "@/lib/analytics/events"
 
 export const runtime = "nodejs"
 
@@ -36,6 +38,14 @@ export async function POST(request: Request) {
   // 3. Create session atomically via RPC
   try {
     const sessionId = await startWorkoutSession(user.id, parsed.data.workout_plan_day_id)
+
+    void trackServerEvent({
+      name: EVENTS.WORKOUT_STARTED,
+      userId: user.id,
+      workoutSessionId: sessionId,
+      dedupeKey: `workout_started:${sessionId}`,
+    })
+
     return Response.json({ sessionId }, { status: 201 })
   } catch (err) {
     const message = err instanceof Error ? err.message : "Error iniciando sesión"

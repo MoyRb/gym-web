@@ -1,6 +1,8 @@
 import { z } from "zod"
 import { createClient } from "@/lib/supabase/server"
 import { completeSession } from "@/lib/workouts/sessions/complete-session"
+import { trackServerEvent } from "@/lib/analytics/server"
+import { EVENTS } from "@/lib/analytics/events"
 
 export const runtime = "nodejs"
 
@@ -39,6 +41,22 @@ export async function PATCH(request: Request, context: RouteContext) {
   // 3. Apply action
   try {
     await completeSession(sessionId, user.id, parsed.data.action)
+
+    if (parsed.data.action === "complete") {
+      void trackServerEvent({
+        name: EVENTS.WORKOUT_COMPLETED,
+        userId: user.id,
+        workoutSessionId: sessionId,
+        dedupeKey: `workout_completed:${sessionId}`,
+      })
+    } else {
+      void trackServerEvent({
+        name: EVENTS.WORKOUT_CANCELLED,
+        userId: user.id,
+        workoutSessionId: sessionId,
+      })
+    }
+
     return Response.json({ ok: true })
   } catch (err) {
     const message = err instanceof Error ? err.message : "Error actualizando sesión"

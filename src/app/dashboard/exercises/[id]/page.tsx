@@ -2,6 +2,8 @@ import { notFound } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { getExerciseGifData } from "@/lib/supabase/media"
 import { PageHeader } from "@/components/dashboard/PageHeader"
+import { trackServerEvent } from "@/lib/analytics/server"
+import { EVENTS } from "@/lib/analytics/events"
 
 // ── Traducciones de presentación ──────────────────────────────────────────────
 const BODY_PART_ES: Record<string, string> = {
@@ -105,14 +107,19 @@ export default async function ExerciseDetailPage({
 
   const supabase = await createClient()
 
-  const { data: exercise, error } = await supabase
-    .from("exercises")
-    .select("*")
-    .eq("id", id)
-    .eq("is_active", true)
-    .single()
+  const [{ data: exercise, error }, { data: { user } }] = await Promise.all([
+    supabase.from("exercises").select("*").eq("id", id).eq("is_active", true).single(),
+    supabase.auth.getUser(),
+  ])
 
   if (error || !exercise) notFound()
+
+  void trackServerEvent({
+    name: EVENTS.EXERCISE_VIEWED,
+    userId: user?.id ?? null,
+    exerciseId: exercise.id,
+    metadata: { body_part: exercise.body_part, equipment: exercise.equipment },
+  })
 
   const steps = resolveSteps(exercise.instruction_steps, exercise.instructions)
   const gifData = await getExerciseGifData(exercise.id)

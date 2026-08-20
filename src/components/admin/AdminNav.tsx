@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { href: "/dashboard/admin/equipment", label: "Equipment"   },
   { href: "/dashboard/admin/ai",        label: "AI"          },
   { href: "/dashboard/admin/users",     label: "Users"       },
+  { href: "/dashboard/admin/product",   label: "Producto"    },
 ]
 
 export function AdminNav() {

@@ -1,7 +1,8 @@
 # Product Analytics Events — Roadmap
 
-**Status:** Planificado — NO implementado todavía.
-**CORTE:** ADMIN 2 (próxima iteración)
+**Status V1:** Implementado en CORTE ADMIN 2 (2026-08-20). Ver [analytics-event-catalog.md](analytics-event-catalog.md).
+**Status V2:** Planificado — eventos de navegación y timing (ver tabla abajo).
+**CORTE V2:** ADMIN 3 (próxima iteración)
 
 ---
 
@@ -166,5 +167,8 @@ cómputos como:
 
 ---
 
+---
+
 *Documento creado en CORTE ADMIN 1 — 2026-08-19*
-*Próxima revisión: CORTE ADMIN 2 (implementación de product_events)*
+*Actualizado en CORTE ADMIN 2 — 2026-08-20: V1 implementado en analytics_events (sin tabla separada)*
+*Próxima revisión: CORTE ADMIN 3 (eventos de timing, skip, replace)*

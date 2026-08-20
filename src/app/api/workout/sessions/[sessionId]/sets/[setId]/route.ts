@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { updateSet, SetUpdateSchema } from "@/lib/workouts/sessions/update-set"
+import { trackServerEvent } from "@/lib/analytics/server"
+import { EVENTS } from "@/lib/analytics/events"
 
 export const runtime = "nodejs"
 
@@ -8,7 +10,7 @@ interface RouteContext {
 }
 
 export async function PATCH(request: Request, context: RouteContext) {
-  const { setId } = await context.params
+  const { sessionId, setId } = await context.params
 
   // 1. Authenticate
   const supabase = await createClient()
@@ -36,14 +38,25 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   // 3. Update set (validates ownership + session status internally)
   try {
-    await updateSet(setId, user.id, parsed.data)
+    await updateSet(setId, sessionId, user.id, parsed.data)
+
+    if (parsed.data.completed === true) {
+      void trackServerEvent({
+        name: EVENTS.SET_COMPLETED,
+        userId: user.id,
+        workoutSessionId: sessionId,
+        metadata: { set_id: setId },
+      })
+    }
+
     return Response.json({ ok: true })
   } catch (err) {
     const message = err instanceof Error ? err.message : "Error actualizando serie"
     const status =
-      message === "No autorizado" ? 403
-      : message.includes("no encontrada") ? 404
-      : message.includes("no está en progreso") ? 409
+      message === "No autorizado"                ? 403
+      : message.includes("no encontrada")        ? 404
+      : message.includes("no está en progreso")  ? 409
+      : message.startsWith("Error interno")      ? 500
       : 500
     return Response.json({ error: message }, { status })
   }

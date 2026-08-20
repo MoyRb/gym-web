@@ -3,6 +3,8 @@ import { Search } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
 import { PageHeader } from "@/components/dashboard/PageHeader"
 import { EmptyState } from "@/components/dashboard/EmptyState"
+import { trackServerEvent } from "@/lib/analytics/server"
+import { EVENTS } from "@/lib/analytics/events"
 
 // ── Traducciones de presentación ──────────────────────────────────────────────
 // Los valores originales del dataset se muestran en español sin alterar los
@@ -121,11 +123,28 @@ export default async function ExercisesPage({
   if (bodyPart)  dbQuery = dbQuery.eq("body_part", bodyPart)
   if (equipment) dbQuery = dbQuery.eq("equipment", equipment)
 
-  const { data: exercises, count, error } = await dbQuery
+  const [dbResult, authResult] = await Promise.all([
+    dbQuery,
+    q ? supabase.auth.getUser() : Promise.resolve({ data: { user: null } }),
+  ])
+  const { data: exercises, count, error } = dbResult
+  const { data: { user } } = authResult
 
   const total = count ?? 0
   const totalPages = Math.ceil(total / PAGE_SIZE)
   const currentFilters = { q, bodyPart, equipment }
+
+  if (q && !error) {
+    void trackServerEvent({
+      name: EVENTS.EXERCISE_SEARCHED,
+      userId: user?.id ?? null,
+      metadata: {
+        result_count: total,
+        has_body_part_filter: !!bodyPart,
+        has_equipment_filter: !!equipment,
+      },
+    })
+  }
 
   return (
     <div className="flex flex-col gap-6">

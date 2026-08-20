@@ -26,6 +26,8 @@
 import type { NextRequest } from "next/server"
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server"
 import type { WorkoutSplit } from "@/lib/workouts/ai/workout-split"
+import { trackServerEvent } from "@/lib/analytics/server"
+import { EVENTS } from "@/lib/analytics/events"
 
 export const runtime = "nodejs"
 
@@ -133,6 +135,14 @@ export async function POST(
     .from("ai_generation_sessions")
     .update({ status: "completed", updated_at: new Date().toISOString() })
     .eq("id", generationId)
+
+  void trackServerEvent({
+    name: EVENTS.AI_GENERATION_COMPLETED,
+    userId: user.id,
+    workoutPlanId: draftPlanId,
+    metadata: { generation_id: generationId },
+    dedupeKey: `ai_gen_completed:${generationId}`,
+  })
 
   return Response.json({ planId: draftPlanId })
 }
