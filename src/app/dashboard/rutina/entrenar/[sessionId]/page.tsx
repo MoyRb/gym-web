@@ -404,9 +404,11 @@ function ExerciseCard({
 function WorkoutSummary({
   session,
   setStates,
+  workoutDayName,
 }: {
   session: WorkoutSessionWithExercises
   setStates: Map<string, SetState>
+  workoutDayName: string | null
 }) {
   const router = useRouter()
   const [shareOpen, setShareOpen] = useState(false)
@@ -436,8 +438,8 @@ function WorkoutSummary({
     { label: "Volumen",      value: `${Math.round(totalVolume)} kg` },
   ]
 
-  // Normalized data for the share card
-  const shareData = normalizeWorkoutShareData(session, setStates)
+  // Normalized data for the share card — pass persisted day name as primary workoutName source
+  const shareData = normalizeWorkoutShareData(session, setStates, workoutDayName)
 
   const openShare = () => {
     void analytics.shareCardOpened("achievement")
@@ -517,6 +519,7 @@ export default function TrainingPage() {
 
   const [pageState, setPageState]     = useState<PageState>("loading")
   const [session, setSession]         = useState<WorkoutSessionWithExercises | null>(null)
+  const [workoutDayName, setWorkoutDayName] = useState<string | null>(null)
   const [errorMsg, setErrorMsg]       = useState<string | null>(null)
   const [setStates, setSetStates]     = useState<Map<string, SetState>>(new Map())
   const [elapsed, setElapsed]         = useState(0)
@@ -542,6 +545,7 @@ export default function TrainingPage() {
           id, user_id, workout_plan_id, workout_plan_day_id,
           status, started_at, completed_at, duration_seconds, notes,
           created_at, updated_at,
+          workout_plan_days ( name ),
           workout_session_exercises (
             id, workout_session_id, workout_plan_exercise_id, exercise_id,
             sort_order, target_sets, target_reps_min, target_reps_max,
@@ -566,6 +570,7 @@ export default function TrainingPage() {
       }
 
       const raw = data as unknown as {
+        workout_plan_days?: { name: string } | null
         workout_session_exercises: Array<{
           exercises: WorkoutSessionWithExercises["exercises"][number]["exercise"]
           workout_sets: WorkoutSetRow[]
@@ -573,6 +578,11 @@ export default function TrainingPage() {
         }>
         [key: string]: unknown
       }
+
+      const dayName = typeof raw.workout_plan_days?.name === "string"
+        ? raw.workout_plan_days.name
+        : null
+      setWorkoutDayName(dayName)
 
       const shaped: WorkoutSessionWithExercises = {
         ...(data as unknown as WorkoutSessionWithExercises),
@@ -752,7 +762,7 @@ export default function TrainingPage() {
     return (
       <div className="fixed inset-0 z-[60] overflow-y-auto bg-background">
         <div className="mx-auto max-w-lg">
-          <WorkoutSummary session={session} setStates={setStates} />
+          <WorkoutSummary session={session} setStates={setStates} workoutDayName={workoutDayName} />
         </div>
       </div>
     )

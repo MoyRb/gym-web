@@ -149,9 +149,87 @@ describe("normalizeWorkoutShareData", () => {
   })
 })
 
-// ── Workout name derivation ───────────────────────────────────────────────────
+// ── Workout name — primary source: workout_plan_days.name ─────────────────────
 
-describe("normalizeWorkoutShareData — workout name", () => {
+describe("normalizeWorkoutShareData — workoutDayName (primary source)", () => {
+  function name(dayName: string | null | undefined, bodyParts: string[]) {
+    const exercises = bodyParts.map((bp) => makeExercise(bp, []))
+    const session = makeSession({
+      exercises: exercises as unknown as WorkoutSessionWithExercises["exercises"],
+    })
+    return normalizeWorkoutShareData(session, new Map(), dayName).workoutName
+  }
+
+  // ── Regression: the exact bug that was reported ──────────────────────────
+  it("Full Body day + first exercise body_part=chest → Full Body (not Pecho)", () => {
+    expect(name("Full Body", ["chest"])).toBe("Full Body")
+  })
+
+  it("Full Body day + featured exercise barbell deadlift body_part=back → Full Body", () => {
+    expect(name("Full Body", ["chest", "back", "upper legs"])).toBe("Full Body")
+  })
+
+  // ── Day name takes priority over ALL body part inference ─────────────────
+  it("Push Day + shoulders body_part → Push Day (not inferred)", () => {
+    expect(name("Push Day", ["shoulders"])).toBe("Push Day")
+  })
+
+  it("Legs day + featured exercise barbell deadlift → Legs (not Leg Day)", () => {
+    expect(name("Legs", ["upper legs"])).toBe("Legs")
+  })
+
+  it("Upper day name → Upper (not changed)", () => {
+    expect(name("Upper", ["chest", "shoulders"])).toBe("Upper")
+  })
+
+  it("Día de pierna → Día de pierna (not translated)", () => {
+    expect(name("Día de pierna", ["upper legs"])).toBe("Día de pierna")
+  })
+
+  it("Long name is passed through intact", () => {
+    const long = "Full Body — Fuerza y acondicionamiento"
+    expect(name(long, ["chest", "back", "upper legs"])).toBe(long)
+  })
+
+  it("dayName trims surrounding whitespace", () => {
+    expect(name("  Full Body  ", ["chest"])).toBe("Full Body")
+  })
+
+  // ── All presets use the same normalized workoutName ───────────────────────
+  it("workoutName is resolved before card rendering (single source)", () => {
+    const session = makeSession({
+      exercises: [makeExercise("chest", [])] as unknown as WorkoutSessionWithExercises["exercises"],
+    })
+    const result = normalizeWorkoutShareData(session, new Map(), "Full Body")
+    // All card presets (Achievement, Minimal, Full) consume this same field
+    expect(result.workoutName).toBe("Full Body")
+  })
+
+  // ── Fallback chain when dayName is absent ─────────────────────────────────
+  it("null dayName → falls back to body-part derivation", () => {
+    expect(name(null, ["chest", "shoulders"])).toBe("Push Day")
+  })
+
+  it("undefined dayName → falls back to body-part derivation", () => {
+    expect(name(undefined, ["back", "biceps"])).toBe("Pull Day")
+  })
+
+  it("empty string dayName → falls back to body-part derivation", () => {
+    expect(name("", ["upper legs"])).toBe("Leg Day")
+  })
+
+  it("missing plan day (null dayName, no exercises) → Entrenamiento", () => {
+    expect(name(null, [])).toBe("Entrenamiento")
+  })
+
+  it("missing plan day (null dayName, unknown body part) → title-cased fallback", () => {
+    expect(name(null, ["neck"])).toBe("Neck")
+  })
+})
+
+// ── Workout name derivation (legacy body-part fallback) ───────────────────────
+
+describe("normalizeWorkoutShareData — workout name (body-part fallback)", () => {
   function name(bodyParts: string[]) {
     const exercises = bodyParts.map((bp) => makeExercise(bp, []))
     const session = makeSession({

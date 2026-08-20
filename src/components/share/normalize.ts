@@ -16,10 +16,15 @@ export interface ShareSetState {
  * flat WorkoutShareData model used by the share card.
  *
  * No PII (name, email, weight, age) is included.
+ *
+ * @param workoutDayName - The persisted name from workout_plan_days.name.
+ *   Pass this to avoid body-part inference. Falls back to body-part
+ *   derivation when null/undefined (e.g. free-form sessions with no plan).
  */
 export function normalizeWorkoutShareData<S extends ShareSetState>(
   session: WorkoutSessionWithExercises,
   setStates: Map<string, S>,
+  workoutDayName?: string | null,
 ): WorkoutShareData {
   const allSets = session.exercises.flatMap((e) => e.sets)
 
@@ -48,14 +53,29 @@ export function normalizeWorkoutShareData<S extends ShareSetState>(
     .filter((p): p is string => typeof p === "string" && p.length > 0)
 
   return {
-    workoutName:    deriveWorkoutName(bodyParts),
-    date:           new Date(session.started_at),
+    workoutName:     resolveWorkoutName(workoutDayName, bodyParts),
+    date:            new Date(session.started_at),
     durationSeconds: session.duration_seconds ?? 0,
-    completedSets:  completedSets.length,
+    completedSets:   completedSets.length,
     totalReps,
     totalVolumeKg,
-    exerciseCount:  session.exercises.length,
+    exerciseCount:   session.exercises.length,
   }
+}
+
+/**
+ * Resolves the workout name using the following priority chain:
+ *
+ * 1. workout_plan_days.name (persisted, authoritative)
+ * 2. Body-part inference (legacy fallback for plan-less sessions)
+ * 3. "Entrenamiento" (safe fallback)
+ *
+ * body_part of individual exercises must NOT be used as a workout title
+ * because a Full Body session can have first exercise body_part = "chest".
+ */
+function resolveWorkoutName(dayName: string | null | undefined, bodyParts: string[]): string {
+  if (dayName && dayName.trim().length > 0) return dayName.trim()
+  return deriveWorkoutName(bodyParts)
 }
 
 /**
