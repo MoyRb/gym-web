@@ -76,6 +76,8 @@ export interface Database {
           bmi: number | null
           bmi_category: string | null
           is_admin: boolean | null
+          training_environment: string | null
+          available_equipment: string[] | null
           created_at: string
           updated_at: string
         }
@@ -94,6 +96,8 @@ export interface Database {
           bmi_category?: string | null
           /** @deprecated Use public.user_roles. Protected against writes by authenticated at the DB level. */
           is_admin?: boolean | null
+          training_environment?: string | null
+          available_equipment?: string[] | null
           created_at?: string
           updated_at?: string
         }
@@ -111,6 +115,8 @@ export interface Database {
           bmi_category?: string | null
           /** @deprecated Use public.user_roles. Protected against writes by authenticated at the DB level. */
           is_admin?: boolean | null
+          training_environment?: string | null
+          available_equipment?: string[] | null
           updated_at?: string
         }
         Relationships: []

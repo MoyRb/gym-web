@@ -83,25 +83,47 @@ export function useProfile() {
       }
 
       const profilePayload = toProfileInsert(user.id, username, data)
+
+      // ── Stage A: profiles.upsert ───────────────────────────────────────────
       const { error: profileError } = await supabase.from("profiles").upsert(profilePayload)
-      if (profileError) throw profileError
-
-      const routineTemplate = await findTemplateForProfile(supabase, data)
-      if (!routineTemplate) {
-        throw new Error("No hay rutinas base activas configuradas")
+      if (profileError) {
+        if (process.env.NODE_ENV !== "production") {
+          console.error("[useProfile] profiles.upsert failed", {
+            code: profileError.code,
+            message: profileError.message,
+            details: profileError.details,
+            hint: profileError.hint,
+          })
+        }
+        throw profileError
       }
 
-      const routinePayload = toRoutineInsert(user.id, routineTemplate)
-      const { error: routineError } = await supabase
-        .from("routine_recommendations")
-        .upsert(routinePayload, { onConflict: "user_id" })
-      if (routineError) throw routineError
-
+      // Profile saved — update local state immediately before the legacy step
       setProfile(data)
-    } catch (error) {
-      if (process.env.NODE_ENV !== "production") {
-        console.error("[useProfile.saveProfile] Error guardando perfil", error)
+
+      // ── Stage B: routine_recommendations (legacy, non-blocking) ───────────
+      // A failure here must NOT revert or mask the successful profile save.
+      try {
+        const routineTemplate = await findTemplateForProfile(supabase, data)
+        if (routineTemplate) {
+          const routinePayload = toRoutineInsert(user.id, routineTemplate)
+          const { error: routineError } = await supabase
+            .from("routine_recommendations")
+            .upsert(routinePayload, { onConflict: "user_id" })
+          if (routineError && process.env.NODE_ENV !== "production") {
+            console.warn("[useProfile] routine_recommendations.upsert failed (non-blocking)", {
+              code: routineError.code,
+              message: routineError.message,
+            })
+          }
+        }
+      } catch (routineErr) {
+        if (process.env.NODE_ENV !== "production") {
+          console.warn("[useProfile] routine_recommendation step failed (non-blocking)", routineErr)
+        }
+        // Non-blocking — profile already saved above
       }
+    } catch (error) {
       throw error
     } finally {
       setIsLoading(false)

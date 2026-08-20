@@ -3,9 +3,11 @@
  *
  * Deterministic selection of exercises from the catalog for AI input.
  * - Only active exercises are included.
- * - Exercises are grouped by body_part, sorted by name within each group.
+ * - Exercises are grouped by body_part, sorted by equipment score DESC then name ASC.
  * - Groups are prioritized by fitness goal.
  * - Total candidates are capped at MAX_CANDIDATES.
+ * - When SelectionContext is provided, HOME incompatible exercises are hard-filtered
+ *   and GYM/HYBRID exercises are soft-ranked by equipment preference.
  *
  * The algorithm is deterministic: same inputs always produce the same output.
  * server-only.
@@ -15,8 +17,11 @@ import "server-only"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import type { Database } from "@/types/database"
 import type { CandidateExercise } from "@/lib/ai/types"
+import type { SelectionContext } from "@/lib/workouts/equipment/equipment-score"
+import { scoreExerciseForContext, HOME_EXCLUDE_SCORE } from "@/lib/workouts/equipment/equipment-score"
 
 export type { CandidateExercise }
+export type { SelectionContext }
 
 export const MAX_CANDIDATES = 55
 
@@ -103,25 +108,55 @@ type ExerciseRow = Pick<
 /**
  * Selects a deterministic, capped set of candidate exercises for AI input.
  *
+ * When context is provided:
+ * - HOME: incompatible exercises are hard-filtered before slot allocation
+ * - GYM/HYBRID: exercises are soft-ranked within each body_part group by equipment score
+ *
+ * Without context (undefined): legacy behavior — alphabetical sort within each group.
+ *
  * @param exercises - Exercise rows (from DB or test fixture)
- * @param goal - User fitness goal (maps to BODY_PART_PRIORITY)
+ * @param goal      - User fitness goal (maps to BODY_PART_PRIORITY)
+ * @param context   - Optional training context for equipment-aware ranking
  * @returns Candidate list, max MAX_CANDIDATES entries
  */
-export function selectCandidates(exercises: ExerciseRow[], goal: string): CandidateExercise[] {
+export function selectCandidates(
+  exercises: ExerciseRow[],
+  goal: string,
+  context?: SelectionContext,
+): CandidateExercise[] {
   const active = exercises.filter((e) => e.is_active)
+
+  // ── HOME hard filter: exclude exercises incompatible with available equipment ──
+  const filtered = context?.environment === "home"
+    ? active.filter((e) => {
+        const score = scoreExerciseForContext(e.equipment, e.name, context)
+        return score !== HOME_EXCLUDE_SCORE
+      })
+    : active
 
   // Group by lowercase body_part (case-insensitive)
   const groups = new Map<string, ExerciseRow[]>()
-  for (const ex of active) {
+  for (const ex of filtered) {
     const key = ex.body_part.toLowerCase()
     const arr = groups.get(key) ?? []
     arr.push(ex)
     groups.set(key, arr)
   }
 
-  // Sort within each group by name for determinism
+  // Sort within each group:
+  // - With context: equipment score DESC, then name ASC (high score = first)
+  // - Without context: name ASC only (legacy behavior)
   for (const arr of groups.values()) {
-    arr.sort((a, b) => a.name.localeCompare(b.name, "en"))
+    if (context) {
+      arr.sort((a, b) => {
+        const scoreA = scoreExerciseForContext(a.equipment, a.name, context)
+        const scoreB = scoreExerciseForContext(b.equipment, b.name, context)
+        if (scoreB !== scoreA) return scoreB - scoreA
+        return a.name.localeCompare(b.name, "en")
+      })
+    } else {
+      arr.sort((a, b) => a.name.localeCompare(b.name, "en"))
+    }
   }
 
   const priority = BODY_PART_PRIORITY[goal] ?? DEFAULT_PRIORITY
@@ -170,10 +205,15 @@ function toCandidate(ex: ExerciseRow): CandidateExercise {
 
 /**
  * Fetches active exercises from the database and returns a curated candidate set.
+ *
+ * @param supabase - Supabase client (should be service role for AI generation)
+ * @param goal     - User fitness goal
+ * @param context  - Optional training context for equipment-aware selection
  */
 export async function getCandidateExercises(
   supabase: SupabaseClient<Database>,
   goal: string,
+  context?: SelectionContext,
 ): Promise<CandidateExercise[]> {
   const { data, error } = await supabase
     .from("exercises")
@@ -184,5 +224,5 @@ export async function getCandidateExercises(
     throw new Error(`Error cargando el catálogo de ejercicios: ${error.message}`)
   }
 
-  return selectCandidates(data ?? [], goal)
+  return selectCandidates(data ?? [], goal, context)
 }

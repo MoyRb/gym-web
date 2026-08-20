@@ -9,6 +9,8 @@ export const mockProfile: UserProfile = {
   experiencia: "principiante",
   objetivo: "ganar_masa_muscular",
   dias_por_semana: 3,
+  entorno: null,
+  equipo_disponible: null,
 }
 
 export const mockRutinas: Rutina[] = []

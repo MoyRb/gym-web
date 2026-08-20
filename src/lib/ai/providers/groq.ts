@@ -114,15 +114,17 @@ function buildUserMessage(input: WorkoutAIInput): string {
 function buildSelectionUserMessage(input: ExerciseSelectionBatchInput): string {
   const { profile, batch_days, candidates, history_summary, min_exercises_per_day, max_exercises_per_day } = input
   const daySpecs = batch_days.map((d) => `${d.day_number}:${d.name}`).join(", ")
-  // Compact candidate format for selection: id|name|body_part (equipment/target not needed)
-  const candidateLines = candidates.map((c) => `${c.id}|${c.name}|${c.body_part}`)
+  // Compact candidate format: id|name|body_part|equipment
+  // Including equipment so Qwen can see what type of resistance each exercise uses.
+  const candidateLines = candidates.map((c) => `${c.id}|${c.name}|${c.body_part}|${c.equipment}`)
+  const envPart = profile.training_environment ? ` | Env:${profile.training_environment}` : ""
   return [
-    `PROFILE: Goal:${profile.goal} | Exp:${profile.experience}`,
+    `PROFILE: Goal:${profile.goal} | Exp:${profile.experience}${envPart}`,
     "",
     `BATCH_DAYS: ${daySpecs}`,
     `SELECTION_COUNT: Select ${min_exercises_per_day} to ${max_exercises_per_day} exercises per day.`,
     "",
-    `CANDIDATES (${candidates.length}, use ONLY these ids — format: id|name|body_part):`,
+    `CANDIDATES (${candidates.length}, use ONLY these ids — format: id|name|body_part|equipment):`,
     ...candidateLines,
     "",
     `HISTORY: ${buildHistoryText(history_summary)}`,

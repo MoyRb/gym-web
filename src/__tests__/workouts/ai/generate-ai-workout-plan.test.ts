@@ -62,6 +62,8 @@ const PROFILE: UserProfile = {
   experiencia: "intermedio",
   objetivo: "ganar_masa_muscular",
   dias_por_semana: 2,
+  entorno: null,
+  equipo_disponible: null,
 }
 
 const VALID_AI_OUTPUT: WorkoutAIOutput = {

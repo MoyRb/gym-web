@@ -143,3 +143,99 @@ describe("(12) authenticated puede actualizar peso, altura, objetivo y días", (
    *   -- Expected: UPDATE 1  (sin error)
    */
 })
+
+// ── Training Context columns: regression after privilege bugfix ───────────────
+// Migration: 20260821000001_training_environment_privileges.sql
+// Grants INSERT/UPDATE on training_environment and available_equipment to authenticated.
+
+describe("(13) authenticated puede actualizar training_environment", () => {
+  it("[unit] UPDATE training_environment tiene éxito", async () => {
+    mockUpdate.mockResolvedValue({ data: [{ training_environment: "gym" }], error: null })
+
+    const { createClient } = await import("@/lib/supabase/server")
+    const client = await createClient()
+    const { error } = await client.from("profiles").update({ training_environment: "gym" })
+
+    expect(error).toBeNull()
+  })
+
+  it("[unit] UPDATE training_environment a null tiene éxito", async () => {
+    mockUpdate.mockResolvedValue({ data: [{ training_environment: null }], error: null })
+
+    const { createClient } = await import("@/lib/supabase/server")
+    const client = await createClient()
+    const { error } = await client.from("profiles").update({ training_environment: null })
+
+    expect(error).toBeNull()
+  })
+
+  /*
+   * SQL assertion (item 13):
+   *   SET ROLE authenticated;
+   *   SET request.jwt.claims = '{"sub":"<uuid>","role":"authenticated"}';
+   *   UPDATE public.profiles SET training_environment = 'gym' WHERE id = '<uuid>';
+   *   -- Expected: UPDATE 1  (sin error)
+   *   -- Requires: GRANT UPDATE (training_environment) ON public.profiles TO authenticated
+   *   -- Applied in: 20260821000001_training_environment_privileges.sql
+   */
+})
+
+describe("(14) authenticated puede actualizar available_equipment", () => {
+  it("[unit] UPDATE available_equipment con array vacío tiene éxito", async () => {
+    mockUpdate.mockResolvedValue({ data: [{ available_equipment: [] }], error: null })
+
+    const { createClient } = await import("@/lib/supabase/server")
+    const client = await createClient()
+    const { error } = await client.from("profiles").update({ available_equipment: [] })
+
+    expect(error).toBeNull()
+  })
+
+  it("[unit] UPDATE available_equipment con selección tiene éxito", async () => {
+    mockUpdate.mockResolvedValue({
+      data: [{ available_equipment: ["bodyweight", "dumbbell"] }],
+      error: null,
+    })
+
+    const { createClient } = await import("@/lib/supabase/server")
+    const client = await createClient()
+    const { error } = await client.from("profiles").update({
+      available_equipment: ["bodyweight", "dumbbell"],
+    })
+
+    expect(error).toBeNull()
+  })
+
+  /*
+   * SQL assertion (item 14):
+   *   SET ROLE authenticated;
+   *   UPDATE public.profiles SET available_equipment = '{"bodyweight","dumbbell"}' WHERE id = '<uuid>';
+   *   -- Expected: UPDATE 1  (sin error)
+   *   -- Requires: GRANT UPDATE (available_equipment) ON public.profiles TO authenticated
+   *   -- Applied in: 20260821000001_training_environment_privileges.sql
+   */
+})
+
+describe("(15) is_admin sigue sin poder ser modificado por authenticated", () => {
+  it("[unit] UPDATE SET is_admin sigue retornando 42501 tras bugfix de privilegios", async () => {
+    mockUpdate.mockResolvedValue({ data: null, error: PERMISSION_DENIED })
+
+    const { createClient } = await import("@/lib/supabase/server")
+    const client = await createClient()
+    const { error } = await client.from("profiles").update({ is_admin: true })
+
+    expect(error?.code).toBe("42501")
+  })
+
+  /*
+   * Security regression (item 15):
+   *   The privilege fix in 20260821000001 grants only training_environment
+   *   and available_equipment — it does NOT grant UPDATE on is_admin.
+   *   This test confirms the hardening from 20260805000000 is preserved.
+   *
+   *   SQL assertion:
+   *   SET ROLE authenticated;
+   *   UPDATE public.profiles SET is_admin = true WHERE id = '<uuid>';
+   *   -- Expected: ERROR 42501 permission denied for column is_admin
+   */
+})

@@ -172,3 +172,230 @@ describe("selectCandidates", () => {
     expect(fantasyCount).toBeLessThanOrEqual(2)
   })
 })
+
+// ── Context-aware selection ────────────────────────────────────────────────────
+
+import type { SelectionContext } from "@/lib/workouts/ai/candidate-exercises"
+
+function makeEx(
+  id: string,
+  name: string,
+  bodyPart: string,
+  equipment: string,
+  isActive = true,
+) {
+  return { id, name, body_part: bodyPart, equipment, target: "target", is_active: isActive }
+}
+
+const gymCtx: SelectionContext = {
+  environment: "gym",
+  availableEquipment: null,
+  experience: "intermedio",
+  goal: "ganar_masa_muscular",
+}
+
+const homeCtx: SelectionContext = {
+  environment: "home",
+  availableEquipment: ["bodyweight", "dumbbell"],
+  experience: "intermedio",
+  goal: "ganar_masa_muscular",
+}
+
+describe("selectCandidates — context-aware (HOME hard filter)", () => {
+  it("excludes incompatible machine exercises for home environment", () => {
+    const exercises = [
+      makeEx("bw-1", "Push-Up", "chest", "body weight"),
+      makeEx("mach-1", "Leg Press", "upper legs", "leverage machine"),
+      makeEx("cable-1", "Cable Row", "back", "cable"),
+    ]
+    const result = selectCandidates(exercises, "ganar_masa_muscular", homeCtx)
+    const ids = result.map((c) => c.id)
+    expect(ids).toContain("bw-1")
+    expect(ids).not.toContain("mach-1")
+    expect(ids).not.toContain("cable-1")
+  })
+
+  it("includes dumbbell exercises when dumbbell is available", () => {
+    const exercises = [
+      makeEx("db-1", "Dumbbell Curl", "upper arms", "dumbbell"),
+      makeEx("mach-1", "Machine Curl", "upper arms", "leverage machine"),
+    ]
+    const result = selectCandidates(exercises, "ganar_masa_muscular", homeCtx)
+    const ids = result.map((c) => c.id)
+    expect(ids).toContain("db-1")
+    expect(ids).not.toContain("mach-1")
+  })
+
+  it("excludes bench-dependent exercises when bench not in available equipment", () => {
+    const exercises = [
+      makeEx("db-press", "Dumbbell Bench Press", "chest", "dumbbell"),
+      makeEx("pushup", "Push-Up", "chest", "body weight"),
+    ]
+    // homeCtx has dumbbell but no bench
+    const result = selectCandidates(exercises, "ganar_masa_muscular", homeCtx)
+    const ids = result.map((c) => c.id)
+    expect(ids).not.toContain("db-press")
+    expect(ids).toContain("pushup")
+  })
+
+  it("excludes pull-up exercises when pullup_bar not in available equipment", () => {
+    const exercises = [
+      makeEx("pullup", "Pull-Up", "back", "body weight"),
+      makeEx("row", "Dumbbell Row", "back", "dumbbell"),
+    ]
+    // homeCtx has no pullup_bar
+    const result = selectCandidates(exercises, "ganar_masa_muscular", homeCtx)
+    const ids = result.map((c) => c.id)
+    expect(ids).not.toContain("pullup")
+    expect(ids).toContain("row")
+  })
+
+  it("empty catalog after home filter returns empty result", () => {
+    const exercises = [
+      makeEx("mach-1", "Leg Press", "upper legs", "leverage machine"),
+      makeEx("cable-1", "Cable Fly", "chest", "cable"),
+    ]
+    const result = selectCandidates(exercises, "ganar_masa_muscular", homeCtx)
+    expect(result).toHaveLength(0)
+  })
+
+  it("with pullup_bar available: pull-up exercises are included", () => {
+    const ctx: SelectionContext = {
+      ...homeCtx,
+      availableEquipment: ["bodyweight", "pullup_bar"],
+    }
+    const exercises = [
+      makeEx("pullup", "Pull-Up", "back", "body weight"),
+      makeEx("chinup", "Chin-Up", "back", "body weight"),
+    ]
+    const result = selectCandidates(exercises, "ganar_masa_muscular", ctx)
+    const ids = result.map((c) => c.id)
+    expect(ids).toContain("pullup")
+    expect(ids).toContain("chinup")
+  })
+})
+
+describe("selectCandidates — context-aware (GYM ranking)", () => {
+  it("machine exercises rank above bodyweight exercises within same body_part", () => {
+    const exercises = [
+      makeEx("bw-1", "Push-Up", "chest", "body weight"),
+      makeEx("mach-1", "Chest Press Machine", "chest", "leverage machine"),
+    ]
+    const result = selectCandidates(exercises, "ganar_masa_muscular", gymCtx)
+    const ids = result.map((c) => c.id)
+    // Machine (score 85) should come before bodyweight (score 35)
+    expect(ids.indexOf("mach-1")).toBeLessThan(ids.indexOf("bw-1"))
+  })
+
+  it("cable exercises rank above bodyweight within same body_part", () => {
+    const exercises = [
+      makeEx("bw-1", "Tricep Push-Up", "upper arms", "body weight"),
+      makeEx("cable-1", "Cable Tricep Pushdown", "upper arms", "cable"),
+    ]
+    const result = selectCandidates(exercises, "ganar_masa_muscular", gymCtx)
+    const ids = result.map((c) => c.id)
+    expect(ids.indexOf("cable-1")).toBeLessThan(ids.indexOf("bw-1"))
+  })
+
+  it("free_weight ranks above bodyweight within same body_part", () => {
+    const exercises = [
+      makeEx("bw-1", "Pike Push-Up", "shoulders", "body weight"),
+      makeEx("db-1", "Dumbbell Lateral Raise", "shoulders", "dumbbell"),
+    ]
+    const result = selectCandidates(exercises, "ganar_masa_muscular", gymCtx)
+    const ids = result.map((c) => c.id)
+    expect(ids.indexOf("db-1")).toBeLessThan(ids.indexOf("bw-1"))
+  })
+
+  it("ties in score are resolved alphabetically by name", () => {
+    // Two machine exercises have the same score → alphabetical within tie
+    const exercises = [
+      makeEx("mach-z", "Zebra Machine", "back", "leverage machine"),
+      makeEx("mach-a", "Alpha Machine", "back", "leverage machine"),
+    ]
+    const result = selectCandidates(exercises, "ganar_masa_muscular", gymCtx)
+    const ids = result.map((c) => c.id)
+    expect(ids.indexOf("mach-a")).toBeLessThan(ids.indexOf("mach-z"))
+  })
+
+  it("without context: legacy alphabetical sort (bodyweight first if alpha)", () => {
+    const exercises = [
+      makeEx("bw-1", "Arnold Push-Up", "chest", "body weight"),   // A
+      makeEx("mach-1", "Bench Press Machine", "chest", "leverage machine"), // B
+    ]
+    // No context → alphabetical, so "Arnold" before "Bench"
+    const result = selectCandidates(exercises, "ganar_masa_muscular")
+    const ids = result.map((c) => c.id)
+    expect(ids.indexOf("bw-1")).toBeLessThan(ids.indexOf("mach-1"))
+  })
+})
+
+describe("selectCandidates — context-aware (HYBRID ranking)", () => {
+  const hybridCtx: SelectionContext = {
+    environment: "hybrid",
+    availableEquipment: null,
+    experience: "intermedio",
+    goal: "ganar_masa_muscular",
+  }
+
+  it("machines still rank high in hybrid (no incompatibility)", () => {
+    const exercises = [
+      makeEx("bw-1", "Push-Up", "chest", "body weight"),
+      makeEx("mach-1", "Chest Press Machine", "chest", "leverage machine"),
+    ]
+    const result = selectCandidates(exercises, "ganar_masa_muscular", hybridCtx)
+    const ids = result.map((c) => c.id)
+    // Machine (85 base, no hybrid boost) vs bodyweight (35 + 10 boost = 45)
+    expect(ids.indexOf("mach-1")).toBeLessThan(ids.indexOf("bw-1"))
+  })
+
+  it("bodyweight scores higher in hybrid than plain gym", () => {
+    // In hybrid: bodyweight = 35+10=45, machine = 85
+    // But bodyweight ranks higher than in gym where it would still be below machine
+    // Verify the score difference is narrowed compared to gym
+    // (indirect: the sort order is same but numeric gap is smaller)
+    const exercises = [
+      makeEx("band-1", "Band Pull Apart", "back", "band"),
+      makeEx("bw-1", "Superman", "back", "body weight"),
+    ]
+    // hybrid: band = 20+10=30, bodyweight = 35+10=45 → bodyweight ahead of band
+    const result = selectCandidates(exercises, "ganar_masa_muscular", hybridCtx)
+    const ids = result.map((c) => c.id)
+    expect(ids.indexOf("bw-1")).toBeLessThan(ids.indexOf("band-1"))
+  })
+
+  it("does not hard-filter any exercises (all equipment allowed in hybrid)", () => {
+    const exercises = [
+      makeEx("mach-1", "Leg Press", "upper legs", "leverage machine"),
+      makeEx("cable-1", "Cable Row", "back", "cable"),
+      makeEx("bw-1", "Pull-Up", "back", "body weight"),
+    ]
+    const result = selectCandidates(exercises, "ganar_masa_muscular", hybridCtx)
+    const ids = result.map((c) => c.id)
+    expect(ids).toContain("mach-1")
+    expect(ids).toContain("cable-1")
+    expect(ids).toContain("bw-1")
+  })
+})
+
+describe("selectCandidates — context-aware (backward compatibility)", () => {
+  it("undefined context uses legacy alphabetical sort (no equipment ranking)", () => {
+    const exercises = [
+      makeEx("bw-z", "Zzz Push-Up", "chest", "body weight"),
+      makeEx("mach-a", "Aardvark Machine", "chest", "leverage machine"),
+    ]
+    // No context: alphabetical → "Aardvark Machine" < "Zzz Push-Up"
+    const result = selectCandidates(exercises, "ganar_masa_muscular", undefined)
+    const ids = result.map((c) => c.id)
+    expect(ids.indexOf("mach-a")).toBeLessThan(ids.indexOf("bw-z"))
+  })
+
+  it("context=undefined still respects is_active filter", () => {
+    const exercises = [
+      makeEx("active", "Active Exercise", "chest", "dumbbell", true),
+      makeEx("inactive", "Inactive Exercise", "chest", "dumbbell", false),
+    ]
+    const result = selectCandidates(exercises, "ganar_masa_muscular", undefined)
+    expect(result.map((c) => c.id)).not.toContain("inactive")
+  })
+})

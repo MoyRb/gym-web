@@ -133,10 +133,12 @@ export interface BatchGenerationResult {
 
 // ── Exercise Selection Types ────────────────────────────────────────────────────
 
-/** Compact selection profile — only goal and experience. No PII sent to AI. */
+/** Compact selection profile — only goal, experience, and training context. No PII sent to AI. */
 export interface SelectionProfile {
   goal: string
   experience: string
+  /** Where the user trains — informs Qwen's equipment preference. null = not set. */
+  training_environment: string | null
 }
 
 /** A single day in an exercise selection output — only IDs, no prescription data. */

@@ -14,7 +14,7 @@ import { SignOutButton } from "@/components/dashboard/SignOutButton"
 import { useProfile } from "@/hooks/useProfile"
 import { analytics } from "@/utils/analytics"
 import { createClient } from "@/lib/supabase/client"
-import type { UserProfile, Objetivo, Experiencia, Sexo } from "@/types"
+import type { UserProfile, Objetivo, Experiencia, Sexo, TrainingEnvironment, HomeEquipment } from "@/types"
 
 const objetivos: { value: Objetivo; label: string }[] = [
   { value: "ganar_masa_muscular", label: "Ganar masa muscular" },
@@ -37,6 +37,22 @@ const sexos: { value: Sexo; label: string }[] = [
 
 const diasOptions = [2, 3, 4, 5, 6]
 
+const entornos: { value: TrainingEnvironment; label: string; description: string }[] = [
+  { value: "gym",    label: "Gimnasio", description: "Acceso a máquinas, poleas y pesos libres." },
+  { value: "home",   label: "Casa",     description: "Rutinas adaptadas al equipo que tienes disponible." },
+  { value: "hybrid", label: "Ambos",    description: "Podemos combinar ejercicios de casa y gimnasio." },
+]
+
+const equipoOptions: { value: HomeEquipment; label: string }[] = [
+  { value: "bodyweight",     label: "Peso corporal" },
+  { value: "dumbbell",       label: "Mancuernas" },
+  { value: "barbell",        label: "Barra" },
+  { value: "bench",          label: "Banco" },
+  { value: "resistance_band", label: "Bandas elásticas" },
+  { value: "kettlebell",     label: "Kettlebell" },
+  { value: "pullup_bar",     label: "Barra de dominadas" },
+]
+
 const defaultProfile: UserProfile = {
   nombre: "",
   edad: 25,
@@ -46,6 +62,8 @@ const defaultProfile: UserProfile = {
   experiencia: "principiante",
   objetivo: "ganar_masa_muscular",
   dias_por_semana: 3,
+  entorno: null,
+  equipo_disponible: null,
 }
 
 export default function PerfilPage() {
@@ -106,7 +124,7 @@ export default function PerfilPage() {
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
     } catch {
-      setError("No pudimos guardar tu perfil. Inténtalo de nuevo.")
+      setError("No pudimos guardar tus cambios.")
     }
   }
 
@@ -247,6 +265,84 @@ export default function PerfilPage() {
                     </div>
                     <p className="text-xs text-muted-foreground">{form.dias_por_semana} días por semana seleccionados</p>
                   </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Entorno de entrenamiento</CardTitle>
+                  <CardDescription>¿Dónde entrenas principalmente?</CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-5">
+                  <div className="flex flex-col gap-2">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                      {entornos.map((e) => (
+                        <button
+                          key={e.value}
+                          type="button"
+                          onClick={() => set("entorno", e.value)}
+                          className={`flex flex-col items-start gap-1 rounded-lg border px-4 py-3 text-left transition-colors ${form.entorno === e.value ? "border-primary bg-primary/5 text-primary" : "border-border bg-background hover:bg-muted"}`}
+                        >
+                          <span className="text-sm font-semibold">{e.label}</span>
+                          <span className="text-xs text-muted-foreground">{e.description}</span>
+                        </button>
+                      ))}
+                    </div>
+                    {form.entorno === null && (
+                      <p className="text-xs text-muted-foreground">
+                        Selecciona tu entorno para obtener ejercicios más apropiados.
+                      </p>
+                    )}
+                  </div>
+
+                  {form.entorno === "gym" && (
+                    <div className="rounded-lg border border-border bg-muted/30 px-4 py-3">
+                      <p className="text-sm text-muted-foreground">
+                        Usaremos máquinas, poleas y pesos libres disponibles en un gimnasio comercial.
+                      </p>
+                    </div>
+                  )}
+
+                  {form.entorno === "home" && (
+                    <div className="flex flex-col gap-2">
+                      <Label>Equipo disponible en casa</Label>
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                        {equipoOptions.map((eq) => {
+                          const selected = form.equipo_disponible?.includes(eq.value) ?? false
+                          return (
+                            <button
+                              key={eq.value}
+                              type="button"
+                              onClick={() => {
+                                const current = form.equipo_disponible ?? []
+                                const next = selected
+                                  ? current.filter((e) => e !== eq.value)
+                                  : [...current, eq.value]
+                                set("equipo_disponible", next.length > 0 ? next : null)
+                              }}
+                              className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${selected ? "border-primary bg-primary/5 text-primary" : "border-border bg-background hover:bg-muted"}`}
+                            >
+                              <span className={`h-3.5 w-3.5 shrink-0 rounded border ${selected ? "border-primary bg-primary" : "border-muted-foreground/40"}`} />
+                              {eq.label}
+                            </button>
+                          )
+                        })}
+                      </div>
+                      {(!form.equipo_disponible || form.equipo_disponible.length === 0) && (
+                        <p className="text-xs text-destructive">
+                          Selecciona al menos un tipo de equipo para generar tu rutina.
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {form.entorno === "hybrid" && (
+                    <div className="rounded-lg border border-border bg-muted/30 px-4 py-3">
+                      <p className="text-sm text-muted-foreground">
+                        Tu rutina combinará ejercicios de gimnasio y movimientos adaptables para casa.
+                      </p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 

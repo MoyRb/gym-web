@@ -37,6 +37,8 @@ import { AIProviderError } from "@/lib/ai/types"
 import type { ExerciseSelectionBatchInput, RateLimitInfo } from "@/lib/ai/types"
 import type { GroqWorkoutProvider } from "@/lib/ai/providers/groq"
 import type { Json } from "@/types/database"
+import type { SelectionContext } from "@/lib/workouts/equipment/equipment-score"
+import type { TrainingEnvironment, HomeEquipment } from "@/lib/workouts/equipment/equipment-categories"
 
 export const runtime = "nodejs"
 
@@ -52,7 +54,7 @@ export async function POST() {
   // 2. Load profile
   const { data: profileRow, error: profileError } = await supabase
     .from("profiles")
-    .select("goal, experience, days_per_week, age, sex, weight_kg, height_cm")
+    .select("goal, experience, days_per_week, age, sex, weight_kg, height_cm, training_environment, available_equipment")
     .eq("id", user.id)
     .maybeSingle()
 
@@ -81,6 +83,8 @@ export async function POST() {
     bmi: null,
     bmi_category: null,
     is_admin: null,
+    training_environment: profileRow.training_environment,
+    available_equipment: profileRow.available_equipment,
     created_at: "",
     updated_at: "",
   })
@@ -117,14 +121,25 @@ export async function POST() {
   const batches = buildBatches(split)
   const totalBatches = batches.length
 
-  // 4. Fetch candidates (full set, stored in session for subsequent batches)
-  const allCandidates = await getCandidateExercises(serviceClient, profile.objetivo)
+  // 4. Build selection context from profile environment preferences
+  const trainingEnvironment = profileRow.training_environment as TrainingEnvironment | null
+  const selectionContext: SelectionContext | undefined = trainingEnvironment
+    ? {
+        environment: trainingEnvironment,
+        availableEquipment: (profileRow.available_equipment as HomeEquipment[] | null) ?? null,
+        experience: profile.experiencia,
+        goal: profile.objetivo,
+      }
+    : undefined
 
-  // 5. Build history summary (non-blocking)
+  // 5. Fetch candidates (scored/ranked by context, stored in session for subsequent batches)
+  const allCandidates = await getCandidateExercises(serviceClient, profile.objetivo, selectionContext)
+
+  // 6. Build history summary (non-blocking)
   const { buildHistorySummary } = await import("@/lib/workouts/ai/history-summary")
   const historySummary = await buildHistorySummary(serviceClient, user.id)
 
-  // 6. Create draft plan
+  // 7. Create draft plan
   const planName = `Plan IA — ${profile.objetivo.replace(/_/g, " ")}`
   const { data: draftPlan, error: draftError } = await serviceClient
     .from("workout_plans")
@@ -147,7 +162,7 @@ export async function POST() {
 
   const draftPlanId = draftPlan.id
 
-  // 7. Create generation session
+  // 8. Create generation session
   const { data: session, error: sessionError } = await serviceClient
     .from("ai_generation_sessions")
     .insert({
@@ -184,13 +199,17 @@ export async function POST() {
     dedupeKey: `ai_gen_started:${generationId}`,
   })
 
-  // 8. Process batch 0 — AI selects IDs, backend prescribes values
+  // 9. Process batch 0 — AI selects IDs, backend prescribes values
   const batch0 = batches[0]
   const batch0Candidates = getCandidatesForBatch(allCandidates, batch0)
   const { min: minEx, max: maxEx } = getExerciseCountBounds(profile.dias_por_semana, profile.experiencia)
 
   const selectionInput: ExerciseSelectionBatchInput = {
-    profile: { goal: profile.objetivo, experience: profile.experiencia },
+    profile: {
+      goal: profile.objetivo,
+      experience: profile.experiencia,
+      training_environment: trainingEnvironment,
+    },
     batch_days: batch0.map((d) => ({ day_number: d.day_number, name: d.name })),
     candidates: batch0Candidates,
     history_summary: historySummary,

@@ -130,10 +130,10 @@ export async function POST(
   // 6. Derive batch candidates and exercise count bounds
   const batchCandidates = getCandidatesForBatch(allCandidates, currentBatch)
 
-  // 7. Load profile from DB — needed for goal/experience
+  // 7. Load profile from DB — needed for goal/experience/environment
   const { data: profileRow } = await supabase
     .from("profiles")
-    .select("goal, experience, days_per_week")
+    .select("goal, experience, days_per_week, training_environment")
     .eq("id", user.id)
     .maybeSingle()
 
@@ -144,10 +144,11 @@ export async function POST(
   const goal = profileRow.goal ?? ""
   const experience = profileRow.experience ?? ""
   const daysPerWeek = profileRow.days_per_week ?? split.length
+  const trainingEnvironment = (profileRow.training_environment as string) ?? null
   const { min: minEx, max: maxEx } = getExerciseCountBounds(daysPerWeek, experience)
 
   const selectionInput: ExerciseSelectionBatchInput = {
-    profile: { goal, experience },
+    profile: { goal, experience, training_environment: trainingEnvironment },
     batch_days: currentBatch.map((d) => ({ day_number: d.day_number, name: d.name })),
     candidates: batchCandidates,
     history_summary: historySummary,

@@ -1,11 +1,18 @@
 import { calcularIMC } from "@/utils/imc"
 import type { Database, Json, ResourceCategory } from "@/types/database"
-import type { Objetivo, Experiencia, RecursoPDF, UserProfile } from "@/types"
+import type { Objetivo, Experiencia, RecursoPDF, UserProfile, TrainingEnvironment, HomeEquipment } from "@/types"
+import { HOME_EQUIPMENT_VALUES } from "@/lib/workouts/equipment/equipment-categories"
 import { buildResourcePdfUrl, slugifyResourceTitle } from "@/lib/pdf/resources"
 
 export type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"]
 
 export function toUserProfile(row: ProfileRow): UserProfile {
+  // Sanitize available_equipment — keep only valid HomeEquipment values
+  const rawEquip = row.available_equipment as string[] | null | undefined
+  const validEquip = rawEquip
+    ? (rawEquip.filter((e) => HOME_EQUIPMENT_VALUES.includes(e as HomeEquipment)) as HomeEquipment[])
+    : null
+
   return {
     nombre: row.full_name ?? "",
     edad: row.age ?? 25,
@@ -15,6 +22,8 @@ export function toUserProfile(row: ProfileRow): UserProfile {
     experiencia: (row.experience as Experiencia) ?? "principiante",
     objetivo: (row.goal as Objetivo) ?? "mejorar_condicion_general",
     dias_por_semana: row.days_per_week ?? 3,
+    entorno: (row.training_environment as TrainingEnvironment) ?? null,
+    equipo_disponible: validEquip && validEquip.length > 0 ? validEquip : null,
   }
 }
 
@@ -38,6 +47,11 @@ export function toProfileInsert(
     days_per_week: profile.dias_por_semana,
     bmi: hasValidImc ? imc.value : null,
     bmi_category: hasValidImc ? imc.categoria : null,
+    training_environment: profile.entorno ?? null,
+    // Sanitize: only persist valid HomeEquipment values
+    available_equipment: profile.equipo_disponible
+      ? profile.equipo_disponible.filter((e) => HOME_EQUIPMENT_VALUES.includes(e))
+      : [],
   }
 }
 

@@ -47,6 +47,8 @@ export async function POST() {
     bmi: null,
     bmi_category: null,
     is_admin: null,
+    training_environment: null,
+    available_equipment: null,
     created_at: "",
     updated_at: "",
   })

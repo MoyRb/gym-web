@@ -7,6 +7,17 @@ export type Objetivo =
 export type Experiencia = "principiante" | "intermedio" | "avanzado"
 export type Sexo = "masculino" | "femenino" | "otro"
 
+export type TrainingEnvironment = "gym" | "home" | "hybrid"
+
+export type HomeEquipment =
+  | "bodyweight"
+  | "dumbbell"
+  | "barbell"
+  | "bench"
+  | "resistance_band"
+  | "kettlebell"
+  | "pullup_bar"
+
 export interface UserProfile {
   nombre: string
   edad: number
@@ -16,6 +27,10 @@ export interface UserProfile {
   experiencia: Experiencia
   objetivo: Objetivo
   dias_por_semana: number
+  /** Where the user primarily trains. null = not yet set (legacy users). */
+  entorno: TrainingEnvironment | null
+  /** Equipment available at home. Only relevant when entorno === "home". */
+  equipo_disponible: HomeEquipment[] | null
 }
 
 export interface ImcResult {
