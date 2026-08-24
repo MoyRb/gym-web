@@ -1,4 +1,4 @@
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Space_Grotesk, Inter } from "next/font/google"
 import { siteConfig } from "@/config/site"
 import { ThemeProvider } from "@/components/layout/ThemeProvider"
@@ -18,7 +18,12 @@ const spaceGrotesk = Space_Grotesk({
   display: "swap",
 })
 
+export const viewport: Viewport = {
+  themeColor: "#0A0A0B",
+}
+
 export const metadata: Metadata = {
+  metadataBase: new URL("https://alphatrainer.net"),
   title: {
     default: `${siteConfig.name} — ${siteConfig.slogan}`,
     template: `%s | ${siteConfig.name}`,
@@ -26,9 +31,12 @@ export const metadata: Metadata = {
   description: siteConfig.description,
   applicationName: siteConfig.name,
   manifest: "/manifest.webmanifest",
-  icons: {
-    icon: [{ url: "/favicon.ico" }],
-    shortcut: ["/favicon.ico"],
+  // favicon.ico, icon.png and apple-icon.png in /app are auto-detected
+  // by Next.js file-based metadata — no manual icon entries needed here.
+  appleWebApp: {
+    capable: true,
+    title: siteConfig.name,
+    statusBarStyle: "black-translucent",
   },
 }
 

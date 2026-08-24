@@ -11,7 +11,7 @@ export const siteConfig = {
     text: "#F2F2F3",
   },
   contact: {
-    email: "hola@alphatrainer.app",
+    email: "hola@alphatrainer.net",
   },
   navigation: [
     { label: "Funcionalidades", href: "#funcionalidades" },

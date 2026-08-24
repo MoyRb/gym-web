@@ -17,6 +17,7 @@ import { createClient } from "@/lib/supabase/client"
 import type { UserProfile, Objetivo, Experiencia, Sexo, TrainingEnvironment, HomeEquipment } from "@/types"
 import { isLegacyInternalEmail, accountHasVerifiedRealEmail } from "@/lib/auth/username"
 import type { User } from "@supabase/supabase-js"
+import { InstallPrompt } from "@/components/pwa/InstallPrompt"
 
 const objetivos: { value: Objetivo; label: string }[] = [
   { value: "ganar_masa_muscular", label: "Ganar masa muscular" },
@@ -415,6 +416,10 @@ export default function PerfilPage() {
                 </Link>
               )}
               <SignOutButton />
+            </div>
+
+            <div className="mt-4">
+              <InstallPrompt />
             </div>
           </div>
         </div>
