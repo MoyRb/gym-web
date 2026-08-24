@@ -11,23 +11,46 @@ import { AlphaTrainerLogo } from "@/components/layout/AlphaTrainerLogo"
 import { BrandBackground } from "@/components/layout/BrandBackground"
 import { analytics } from "@/utils/analytics"
 import { createClient } from "@/lib/supabase/client"
-import { usernameToInternalEmail, validateUsername } from "@/lib/auth/username"
+import { normalizeUsername, usernameToInternalEmail } from "@/lib/auth/username"
+import { isSafeRedirectPath } from "@/lib/auth/app-url"
+
+function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+}
 
 export default function LoginPage() {
   const router = useRouter()
 
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [username, setUsername] = useState("")
-  const [password, setPassword] = useState("")
-  const [errors, setErrors] = useState<{ username?: string; password?: string; form?: string }>({})
+  const [isLegacyMode, setIsLegacyMode] = useState(false)
 
-  function validate() {
+  // Primary (email) mode state
+  const [email, setEmail] = useState("")
+  // Legacy mode state
+  const [legacyUsername, setLegacyUsername] = useState("")
+
+  const [password, setPassword] = useState("")
+  const [errors, setErrors] = useState<{
+    identifier?: string
+    password?: string
+    form?: string
+  }>({})
+  const [showResendVerification, setShowResendVerification] = useState(false)
+
+  function validate(): typeof errors {
     const errs: typeof errors = {}
-    const usernameError = validateUsername(username)
-    if (usernameError) errs.username = usernameError
+
+    if (isLegacyMode) {
+      if (!legacyUsername.trim()) errs.identifier = "El nombre de usuario es obligatorio"
+    } else {
+      const trimmed = email.toLowerCase().trim()
+      if (!trimmed) errs.identifier = "El correo electrónico es obligatorio"
+      else if (!isValidEmail(trimmed)) errs.identifier = "Introduce un correo válido"
+    }
+
     if (!password) errs.password = "La contraseña es obligatoria"
-    else if (password.length < 6) errs.password = "Mínimo 6 caracteres"
+
     return errs
   }
 
@@ -40,29 +63,65 @@ export default function LoginPage() {
     }
 
     setErrors({})
+    setShowResendVerification(false)
     setIsLoading(true)
 
     const supabase = createClient()
+    const loginEmail = isLegacyMode
+      ? usernameToInternalEmail(normalizeUsername(legacyUsername))
+      : email.toLowerCase().trim()
+
     const { error } = await supabase.auth.signInWithPassword({
-      email: usernameToInternalEmail(username),
+      email: loginEmail,
       password,
     })
 
     if (error) {
-      setErrors({ form: "No pudimos iniciar sesión. Verifica tus credenciales." })
+      const isUnconfirmed =
+        error.message.toLowerCase().includes("email not confirmed") ||
+        error.message.toLowerCase().includes("email_not_confirmed")
+
+      if (isUnconfirmed && !isLegacyMode) {
+        setErrors({
+          form: "Necesitas verificar tu correo antes de iniciar sesión.",
+        })
+        setShowResendVerification(true)
+        setIsLoading(false)
+        return
+      }
+
+      setErrors({ form: "No pudimos iniciar sesión. Revisa tus datos." })
       setIsLoading(false)
       return
     }
 
-    await analytics.login("username")
-    const nextPath = new URL(window.location.href).searchParams.get("next") || "/dashboard"
+    await analytics.loginCompleted(isLegacyMode ? "legacy_username" : "email")
+
+    const rawNext = new URL(window.location.href).searchParams.get("next") ?? ""
+    const nextPath = isSafeRedirectPath(rawNext) ? rawNext : "/dashboard"
     router.replace(nextPath)
     router.refresh()
+  }
+
+  async function handleResendVerification() {
+    const targetEmail = email.toLowerCase().trim()
+    if (!targetEmail) return
+
+    const supabase = createClient()
+    await supabase.auth.resend({
+      type: "signup",
+      email: targetEmail,
+      options: { emailRedirectTo: `${window.location.origin}/auth/confirm` },
+    })
+
+    sessionStorage.setItem("alpha-trainer.pending-email", targetEmail)
+    router.push("/verify-email")
   }
 
   return (
     <div className="relative flex min-h-screen flex-col bg-background">
       <BrandBackground variant="auth" />
+
       {/* Header */}
       <header className="relative flex h-16 items-center justify-between border-b border-border px-4 sm:px-8">
         <AlphaTrainerLogo href="/" variant="auto" height={26} />
@@ -85,33 +144,70 @@ export default function LoginPage() {
             </div>
             <h1 className="text-2xl font-bold">Accede a tu cuenta</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Ingresa con tu nombre de usuario y contraseña.
+              {isLegacyMode
+                ? "Accediendo con cuenta anterior."
+                : "Ingresa con tu correo y contraseña."}
             </p>
           </div>
 
           {/* Form */}
           <div className="rounded-lg border border-border bg-card p-6">
             <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
+              {/* Email or Username */}
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="username">Nombre de usuario</Label>
-                <Input
-                  id="username"
-                  type="text"
-                  placeholder="ej: juan.perez"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  aria-invalid={!!errors.username}
-                  className="h-10 text-base sm:text-sm"
-                  autoComplete="username"
-                  autoCapitalize="none"
-                />
-                {errors.username && (
-                  <p className="text-xs text-destructive">{errors.username}</p>
+                <Label htmlFor="identifier">
+                  {isLegacyMode ? "Nombre de usuario" : "Correo electrónico"}
+                </Label>
+                {isLegacyMode ? (
+                  <Input
+                    id="identifier"
+                    key="legacy-username"
+                    type="text"
+                    placeholder="ej: juan.perez"
+                    value={legacyUsername}
+                    onChange={(e) => setLegacyUsername(e.target.value)}
+                    aria-invalid={!!errors.identifier}
+                    aria-describedby={errors.identifier ? "identifier-error" : undefined}
+                    className="h-10 text-base sm:text-sm"
+                    autoComplete="username"
+                    autoCapitalize="none"
+                  />
+                ) : (
+                  <Input
+                    id="identifier"
+                    key="email"
+                    type="email"
+                    placeholder="tu@correo.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    aria-invalid={!!errors.identifier}
+                    aria-describedby={errors.identifier ? "identifier-error" : undefined}
+                    className="h-10 text-base sm:text-sm"
+                    autoComplete="email"
+                    autoCapitalize="none"
+                  />
+                )}
+                {errors.identifier && (
+                  <p id="identifier-error" className="text-xs text-destructive">
+                    {errors.identifier}
+                  </p>
                 )}
               </div>
 
+              {/* Password */}
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="password">Contraseña</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Contraseña</Label>
+                  {!isLegacyMode && (
+                    <Link
+                      href="/forgot-password"
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      tabIndex={-1}
+                    >
+                      ¿Olvidaste tu contraseña?
+                    </Link>
+                  )}
+                </div>
                 <div className="relative">
                   <Input
                     id="password"
@@ -120,6 +216,7 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     aria-invalid={!!errors.password}
+                    aria-describedby={errors.password ? "password-error" : undefined}
                     className="h-10 pr-10 text-base sm:text-sm"
                     autoComplete="current-password"
                   />
@@ -133,14 +230,23 @@ export default function LoginPage() {
                   </button>
                 </div>
                 {errors.password && (
-                  <p className="text-xs text-destructive">{errors.password}</p>
+                  <p id="password-error" className="text-xs text-destructive">{errors.password}</p>
                 )}
               </div>
 
               {errors.form && (
-                <p className="rounded border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-                  {errors.form}
-                </p>
+                <div className="rounded border border-destructive/20 bg-destructive/10 px-3 py-2">
+                  <p className="text-xs text-destructive">{errors.form}</p>
+                  {showResendVerification && (
+                    <button
+                      type="button"
+                      onClick={handleResendVerification}
+                      className="mt-2 text-xs font-medium text-primary hover:underline"
+                    >
+                      Reenviar verificación
+                    </button>
+                  )}
+                </div>
               )}
 
               <Button
@@ -153,10 +259,42 @@ export default function LoginPage() {
             </form>
           </div>
 
-          <p className="mt-6 text-center text-sm text-muted-foreground">
+          {/* Legacy toggle */}
+          <div className="mt-4 text-center">
+            {isLegacyMode ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsLegacyMode(false)
+                  setErrors({})
+                  setShowResendVerification(false)
+                }}
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Iniciar con correo electrónico
+              </button>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                ¿Usas una cuenta anterior?{" "}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsLegacyMode(true)
+                    setErrors({})
+                    setShowResendVerification(false)
+                  }}
+                  className="font-medium text-muted-foreground hover:text-foreground underline transition-colors"
+                >
+                  Iniciar con nombre de usuario
+                </button>
+              </p>
+            )}
+          </div>
+
+          <p className="mt-4 text-center text-sm text-muted-foreground">
             ¿Aún no tienes cuenta?{" "}
             <Link href="/register" className="font-medium text-primary hover:underline">
-              Crear cuenta gratis
+              Crear cuenta
             </Link>
           </p>
         </div>

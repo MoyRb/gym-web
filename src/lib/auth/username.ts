@@ -22,6 +22,30 @@ export function validateUsername(value: string): string | null {
   return null
 }
 
+/**
+ * @deprecated Legacy compatibility only. New accounts use real emails.
+ * Do NOT call this for new user registration.
+ */
 export function usernameToInternalEmail(username: string): string {
   return `${normalizeUsername(username)}@${INTERNAL_AUTH_DOMAIN}`
+}
+
+/** Returns true if the email is a legacy internal placeholder, not a real email. */
+export function isLegacyInternalEmail(email: string): boolean {
+  return email.endsWith(`@${INTERNAL_AUTH_DOMAIN}`)
+}
+
+/**
+ * Returns true if the account has a verified real email address.
+ * Used for billing guards and security checks.
+ */
+export function accountHasVerifiedRealEmail(user: {
+  email?: string | null
+  email_confirmed_at?: string | null
+}): boolean {
+  return (
+    !!user.email &&
+    !isLegacyInternalEmail(user.email) &&
+    !!user.email_confirmed_at
+  )
 }

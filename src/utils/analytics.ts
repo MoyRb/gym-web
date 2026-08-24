@@ -7,6 +7,13 @@ export const analyticsEvents = {
   profileCompleted: "profile_completed",
   routineViewed: "routine_viewed",
   pdfDownloaded: "pdf_downloaded",
+  // ── Auth V2 ─────────────────────────────────────────────────
+  signupStarted:              "signup_started",
+  signupVerificationSent:     "signup_verification_sent",
+  signupVerified:             "signup_verified",
+  loginCompleted:             "login_completed",
+  passwordRecoveryRequested:  "password_recovery_requested",
+  passwordResetCompleted:     "password_reset_completed",
   // ── Share card ──────────────────────────────────────────────
   shareCardOpened:          "share_card_opened",
   shareCardPresetSelected:  "share_card_preset_selected",
@@ -38,6 +45,14 @@ async function trackEvent(eventType: string, metadata?: Record<string, unknown>)
 export const analytics = {
   login: (method = "username") => trackEvent(analyticsEvents.login, { method }),
   register: (method = "username") => trackEvent(analyticsEvents.register, { method }),
+  // Auth V2 events — no PII: never include email, username, tokens.
+  signupStarted: () => trackEvent(analyticsEvents.signupStarted),
+  signupVerificationSent: () => trackEvent(analyticsEvents.signupVerificationSent),
+  signupVerified: () => trackEvent(analyticsEvents.signupVerified),
+  loginCompleted: (method: "email" | "legacy_username") =>
+    trackEvent(analyticsEvents.loginCompleted, { method }),
+  passwordRecoveryRequested: () => trackEvent(analyticsEvents.passwordRecoveryRequested),
+  passwordResetCompleted: () => trackEvent(analyticsEvents.passwordResetCompleted),
   profileCompleted: (objetivo: string, experiencia: string) =>
     trackEvent(analyticsEvents.profileCompleted, { objetivo, experiencia }),
   routineViewed: (rutinaId: string, rutinaTitle: string) =>

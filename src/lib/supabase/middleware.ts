@@ -4,7 +4,7 @@ import type { Database } from "@/types/database"
 import { supabaseAnonKey, supabaseUrl } from "@/lib/supabase/env-public"
 
 const PRIVATE_PREFIXES = ["/dashboard"]
-const AUTH_ROUTES = ["/login", "/register"]
+const AUTH_ROUTES = ["/login", "/register", "/forgot-password"]
 const SUPABASE_COOKIE_PREFIXES = ["sb-", "supabase-"]
 
 function clearSupabaseCookies(request: NextRequest, response: NextResponse) {

@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server"
-import { createServiceRoleClient } from "@/lib/supabase/server"
-import { normalizeUsername, usernameToInternalEmail, validateUsername } from "@/lib/auth/username"
+import { createClient, createServiceRoleClient } from "@/lib/supabase/server"
+import { normalizeUsername, validateUsername } from "@/lib/auth/username"
 
 interface RegisterPayload {
   nombre?: string
   username?: string
+  email?: string
   password?: string
+  emailRedirectTo?: string
+}
+
+function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
 }
 
 export async function POST(request: Request) {
@@ -13,7 +19,9 @@ export async function POST(request: Request) {
 
   const nombre = payload?.nombre?.trim() ?? ""
   const usernameInput = payload?.username ?? ""
+  const email = (payload?.email ?? "").toLowerCase().trim()
   const password = payload?.password ?? ""
+  const emailRedirectTo = payload?.emailRedirectTo ?? ""
 
   if (!nombre) {
     return NextResponse.json({ error: "El nombre es obligatorio" }, { status: 400 })
@@ -22,6 +30,10 @@ export async function POST(request: Request) {
   const usernameError = validateUsername(usernameInput)
   if (usernameError) {
     return NextResponse.json({ error: usernameError }, { status: 400 })
+  }
+
+  if (!email || !isValidEmail(email)) {
+    return NextResponse.json({ error: "El correo electrónico no es válido" }, { status: 400 })
   }
 
   if (!password) {
@@ -33,16 +45,16 @@ export async function POST(request: Request) {
   }
 
   const username = normalizeUsername(usernameInput)
-  const internalEmail = usernameToInternalEmail(username)
-  const supabase = createServiceRoleClient()
 
-  const { data: existingProfile, error: existingProfileError } = await supabase
+  // Pre-check username uniqueness (service role READ — not used for account creation).
+  const serviceRole = createServiceRoleClient()
+  const { data: existingProfile, error: profileCheckError } = await serviceRole
     .from("profiles")
     .select("id")
     .eq("username", username)
     .maybeSingle()
 
-  if (existingProfileError) {
+  if (profileCheckError) {
     return NextResponse.json({ error: "No fue posible validar el usuario" }, { status: 500 })
   }
 
@@ -50,38 +62,38 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Ese nombre de usuario ya está en uso" }, { status: 409 })
   }
 
-  const { data: createdUser, error: createUserError } = await supabase.auth.admin.createUser({
-    email: internalEmail,
+  // Create account via standard Supabase Auth signUp (anon key, no service role).
+  const supabase = await createClient()
+  const { data, error: signUpError } = await supabase.auth.signUp({
+    email,
     password,
-    email_confirm: true,
-    user_metadata: {
-      full_name: nombre,
-      username,
+    options: {
+      data: {
+        username,
+        full_name: nombre,
+      },
+      ...(emailRedirectTo ? { emailRedirectTo } : {}),
     },
   })
 
-  if (createUserError) {
-    const duplicate = /already|exists|registered/i.test(createUserError.message)
-    const status = duplicate ? 409 : 500
-    const message = duplicate
-      ? "Ese nombre de usuario ya está en uso"
-      : "No fue posible completar el registro"
+  if (signUpError) {
+    // Avoid leaking whether the email already exists (account enumeration).
+    const isEmailConflict = /already registered|already exists|user already/i.test(signUpError.message)
+    if (isEmailConflict) {
+      // Neutral: reveal nothing about existing account.
+      return NextResponse.json({ ok: true })
+    }
 
-    return NextResponse.json({ error: message }, { status })
-  }
+    const isUsernameTaken = /duplicate key.*username|profiles_username/i.test(signUpError.message)
+    if (isUsernameTaken) {
+      return NextResponse.json({ error: "Ese nombre de usuario ya está en uso" }, { status: 409 })
+    }
 
-  const userId = createdUser.user?.id
-  if (!userId) {
     return NextResponse.json({ error: "No fue posible completar el registro" }, { status: 500 })
   }
 
-  const { error: upsertProfileError } = await supabase
-    .from("profiles")
-    .upsert({ id: userId, full_name: nombre, username }, { onConflict: "id" })
-
-  if (upsertProfileError) {
-    return NextResponse.json({ error: "El usuario fue creado, pero no su perfil" }, { status: 500 })
-  }
+  // data.session is null when email confirmation is required — that is expected.
+  void data
 
   return NextResponse.json({ ok: true })
 }

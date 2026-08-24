@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Save, RotateCcw, CheckCircle, BookOpen, BarChart3 } from "lucide-react"
+import { Save, RotateCcw, CheckCircle, BookOpen, BarChart3, Shield, CheckCircle2, Clock, UserCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -15,6 +15,8 @@ import { useProfile } from "@/hooks/useProfile"
 import { analytics } from "@/utils/analytics"
 import { createClient } from "@/lib/supabase/client"
 import type { UserProfile, Objetivo, Experiencia, Sexo, TrainingEnvironment, HomeEquipment } from "@/types"
+import { isLegacyInternalEmail, accountHasVerifiedRealEmail } from "@/lib/auth/username"
+import type { User } from "@supabase/supabase-js"
 
 const objetivos: { value: Objetivo; label: string }[] = [
   { value: "ganar_masa_muscular", label: "Ganar masa muscular" },
@@ -73,6 +75,7 @@ export default function PerfilPage() {
   const [form, setForm] = useState<UserProfile>(defaultProfile)
   const [fieldErrors, setFieldErrors] = useState<{ peso_kg?: string; altura_cm?: string }>({})
   const [isAdmin, setIsAdmin] = useState(false)
+  const [authUser, setAuthUser] = useState<User | null>(null)
 
   useEffect(() => {
     void (async () => {
@@ -87,6 +90,9 @@ export default function PerfilPage() {
     const supabase = createClient()
     void supabase.rpc("is_current_user_admin").then(({ data }) => {
       setIsAdmin(data === true)
+    })
+    void supabase.auth.getUser().then(({ data }) => {
+      setAuthUser(data.user)
     })
   }, [])
 
@@ -359,6 +365,9 @@ export default function PerfilPage() {
               </div>
             </div>
           </form>
+
+          {/* Account security — separate section, outside the profile form */}
+          <AccountSecurityCard user={authUser} />
         </div>
 
         <div className="flex flex-col gap-4">
@@ -411,5 +420,91 @@ export default function PerfilPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+function AccountSecurityCard({ user }: { user: User | null }) {
+  const email = user?.email ?? null
+  const confirmedAt = user?.email_confirmed_at ?? null
+  const isLegacy = email ? isLegacyInternalEmail(email) : false
+  const isVerified = user ? accountHasVerifiedRealEmail(user) : false
+  const isPending = email && !isLegacy && !confirmedAt
+
+  return (
+    <Card className="mt-6">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Shield className="h-4 w-4 text-muted-foreground" />
+          Seguridad de la cuenta
+        </CardTitle>
+        <CardDescription>Estado de verificación y acceso</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        {/* Email row */}
+        <div className="flex flex-col gap-1">
+          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Correo electrónico
+          </span>
+          {isLegacy ? (
+            <div className="flex items-center gap-2">
+              <UserCircle className="h-4 w-4 text-muted-foreground shrink-0" />
+              <span className="text-sm text-muted-foreground">No configurado</span>
+              <span className="ml-auto rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                Cuenta anterior
+              </span>
+            </div>
+          ) : isVerified ? (
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">{email}</span>
+              <span className="ml-auto flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                <CheckCircle2 className="h-3 w-3" />
+                Verificado
+              </span>
+            </div>
+          ) : isPending ? (
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">{email}</span>
+                <span className="ml-auto flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                  <Clock className="h-3 w-3" />
+                  Pendiente
+                </span>
+              </div>
+              <Link
+                href="/verify-email"
+                className="text-xs text-primary hover:underline"
+              >
+                Reenviar verificación
+              </Link>
+            </div>
+          ) : (
+            <span className="text-sm text-muted-foreground">No disponible</span>
+          )}
+        </div>
+
+        {/* Password row */}
+        <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Contraseña
+            </span>
+            <span className="text-sm tracking-widest text-muted-foreground">••••••••</span>
+          </div>
+          {!isLegacy && email && (
+            <Link
+              href="/forgot-password"
+              className="text-xs font-medium text-primary hover:underline"
+            >
+              Cambiar contraseña
+            </Link>
+          )}
+          {isLegacy && (
+            <span className="text-xs text-muted-foreground">
+              Próximamente
+            </span>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   )
 }

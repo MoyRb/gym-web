@@ -10,8 +10,7 @@ import { Label } from "@/components/ui/label"
 import { AlphaTrainerLogo } from "@/components/layout/AlphaTrainerLogo"
 import { BrandBackground } from "@/components/layout/BrandBackground"
 import { analytics } from "@/utils/analytics"
-import { createClient } from "@/lib/supabase/client"
-import { normalizeUsername, usernameToInternalEmail, validateUsername } from "@/lib/auth/username"
+import { normalizeUsername, validateUsername } from "@/lib/auth/username"
 
 const benefits = [
   "Rutina personalizada generada con IA",
@@ -19,13 +18,23 @@ const benefits = [
   "Seguimiento de progreso y métricas",
 ]
 
+function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+}
+
 export default function RegisterPage() {
   const router = useRouter()
 
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [form, setForm] = useState({ nombre: "", username: "", password: "" })
-  const [errors, setErrors] = useState<{ nombre?: string; username?: string; password?: string; form?: string }>({})
+  const [form, setForm] = useState({ nombre: "", username: "", email: "", password: "" })
+  const [errors, setErrors] = useState<{
+    nombre?: string
+    username?: string
+    email?: string
+    password?: string
+    form?: string
+  }>({})
 
   function set(field: string, value: string) {
     setForm((f) => ({ ...f, [field]: value }))
@@ -36,8 +45,11 @@ export default function RegisterPage() {
     if (!form.nombre.trim()) errs.nombre = "El nombre es obligatorio"
     const usernameError = validateUsername(form.username)
     if (usernameError) errs.username = usernameError
+    const email = form.email.toLowerCase().trim()
+    if (!email) errs.email = "El correo electrónico es obligatorio"
+    else if (!isValidEmail(email)) errs.email = "Introduce un correo válido"
     if (!form.password) errs.password = "La contraseña es obligatoria"
-    else if (form.password.length < 6) errs.password = "Mínimo 6 caracteres"
+    else if (form.password.length < 8) errs.password = "Mínimo 8 caracteres"
     return errs
   }
 
@@ -52,8 +64,11 @@ export default function RegisterPage() {
     setErrors({})
     setIsLoading(true)
 
+    void analytics.signupStarted()
+
     const username = normalizeUsername(form.username)
-    const internalEmail = usernameToInternalEmail(username)
+    const email = form.email.toLowerCase().trim()
+    const emailRedirectTo = `${window.location.origin}/auth/confirm`
 
     const registerResponse = await fetch("/api/auth/register", {
       method: "POST",
@@ -61,7 +76,9 @@ export default function RegisterPage() {
       body: JSON.stringify({
         nombre: form.nombre,
         username,
+        email,
         password: form.password,
+        emailRedirectTo,
       }),
     })
 
@@ -72,21 +89,12 @@ export default function RegisterPage() {
       return
     }
 
-    const supabase = createClient()
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: internalEmail,
-      password: form.password,
-    })
+    void analytics.signupVerificationSent()
 
-    if (signInError) {
-      setErrors({ form: "Cuenta creada. Inicia sesión para continuar." })
-      setIsLoading(false)
-      return
-    }
+    // Store pending email for the verify-email page (UX only, not sensitive).
+    sessionStorage.setItem("alpha-trainer.pending-email", email)
 
-    await analytics.register("username")
-    router.replace("/dashboard/perfil")
-    router.refresh()
+    router.replace("/verify-email")
   }
 
   return (
@@ -114,7 +122,7 @@ export default function RegisterPage() {
             </div>
             <h1 className="text-2xl font-bold">Crea tu cuenta</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Gratis. Sin tarjeta de crédito.
+              Entrena con un plan diseñado para ti.
             </p>
           </div>
 
@@ -133,6 +141,7 @@ export default function RegisterPage() {
           {/* Form */}
           <div className="rounded-lg border border-border bg-card p-6">
             <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
+              {/* Nombre */}
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="nombre">Nombre completo</Label>
                 <Input
@@ -142,14 +151,16 @@ export default function RegisterPage() {
                   value={form.nombre}
                   onChange={(e) => set("nombre", e.target.value)}
                   aria-invalid={!!errors.nombre}
+                  aria-describedby={errors.nombre ? "nombre-error" : undefined}
                   className="h-10 text-base sm:text-sm"
                   autoComplete="name"
                 />
                 {errors.nombre && (
-                  <p className="text-xs text-destructive">{errors.nombre}</p>
+                  <p id="nombre-error" className="text-xs text-destructive">{errors.nombre}</p>
                 )}
               </div>
 
+              {/* Username */}
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="username">Nombre de usuario</Label>
                 <Input
@@ -159,25 +170,52 @@ export default function RegisterPage() {
                   value={form.username}
                   onChange={(e) => set("username", e.target.value)}
                   aria-invalid={!!errors.username}
+                  aria-describedby={errors.username ? "username-error" : undefined}
                   className="h-10 text-base sm:text-sm"
                   autoComplete="username"
                   autoCapitalize="none"
                 />
                 {errors.username && (
-                  <p className="text-xs text-destructive">{errors.username}</p>
+                  <p id="username-error" className="text-xs text-destructive">{errors.username}</p>
                 )}
               </div>
 
+              {/* Email */}
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="email">Correo electrónico</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="tu@correo.com"
+                  value={form.email}
+                  onChange={(e) => set("email", e.target.value)}
+                  aria-invalid={!!errors.email}
+                  aria-describedby={errors.email ? "email-error" : "email-hint"}
+                  className="h-10 text-base sm:text-sm"
+                  autoComplete="email"
+                  autoCapitalize="none"
+                />
+                {errors.email ? (
+                  <p id="email-error" className="text-xs text-destructive">{errors.email}</p>
+                ) : (
+                  <p id="email-hint" className="text-xs text-muted-foreground">
+                    Lo usaremos para verificar y proteger tu cuenta.
+                  </p>
+                )}
+              </div>
+
+              {/* Password */}
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="password">Contraseña</Label>
                 <div className="relative">
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="Mínimo 6 caracteres"
+                    placeholder="Mínimo 8 caracteres"
                     value={form.password}
                     onChange={(e) => set("password", e.target.value)}
                     aria-invalid={!!errors.password}
+                    aria-describedby={errors.password ? "password-error" : undefined}
                     className="h-10 pr-10 text-base sm:text-sm"
                     autoComplete="new-password"
                   />
@@ -185,13 +223,13 @@ export default function RegisterPage() {
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    aria-label={showPassword ? "Ocultar" : "Mostrar"}
+                    aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
                 {errors.password && (
-                  <p className="text-xs text-destructive">{errors.password}</p>
+                  <p id="password-error" className="text-xs text-destructive">{errors.password}</p>
                 )}
               </div>
 
@@ -206,7 +244,7 @@ export default function RegisterPage() {
                 className="h-10 w-full bg-primary text-primary-foreground hover:bg-primary/90"
                 disabled={isLoading}
               >
-                {isLoading ? "Creando cuenta..." : "Crear cuenta gratis"}
+                {isLoading ? "Creando cuenta..." : "Crear cuenta"}
               </Button>
             </form>
           </div>

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Verifica tu cuenta de Alpha Trainer</title>
+</head>
+<body style="margin:0;padding:0;background-color:#0A0A0B;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0A0A0B;padding:40px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
+
+          <!-- Header / Logo -->
+          <tr>
+            <td align="center" style="padding-bottom:32px;">
+              <img
+                src="https://alphatrainer.net/brand/alpha-trainer/logo-wordmark-light.png"
+                alt="ALPHA TRAINER"
+                width="160"
+                height="auto"
+                style="display:block;max-width:160px;"
+              />
+            </td>
+          </tr>
+
+          <!-- Card -->
+          <tr>
+            <td style="background-color:#141415;border:1px solid #242426;border-radius:8px;padding:40px 36px;">
+
+              <!-- Title -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="padding-bottom:16px;">
+                    <h1 style="margin:0;font-size:22px;font-weight:700;color:#FFFFFF;line-height:1.3;">
+                      Confirma tu correo
+                    </h1>
+                  </td>
+                </tr>
+
+                <!-- Body text -->
+                <tr>
+                  <td style="padding-bottom:32px;">
+                    <p style="margin:0;font-size:15px;line-height:1.6;color:#A1A1AA;">
+                      Estás a un paso de empezar a entrenar con Alpha Trainer.<br />
+                      Confirma esta dirección para proteger tu cuenta y activar el acceso.
+                    </p>
+                  </td>
+                </tr>
+
+                <!-- CTA Button -->
+                <tr>
+                  <td align="center" style="padding-bottom:32px;">
+                    <a
+                      href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email"
+                      style="display:inline-block;background-color:#CF2020;color:#FFFFFF;font-size:15px;font-weight:600;text-decoration:none;padding:14px 32px;border-radius:6px;letter-spacing:0.02em;"
+                    >
+                      VERIFICAR MI CORREO
+                    </a>
+                  </td>
+                </tr>
+
+                <!-- Fallback link -->
+                <tr>
+                  <td style="padding-bottom:32px;">
+                    <p style="margin:0;font-size:12px;line-height:1.5;color:#71717A;">
+                      Si el botón no funciona, copia y pega este enlace en tu navegador:
+                    </p>
+                    <p style="margin:4px 0 0;font-size:12px;line-height:1.5;word-break:break-all;">
+                      <a
+                        href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email"
+                        style="color:#CF2020;text-decoration:underline;"
+                      >
+                        {{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=email
+                      </a>
+                    </p>
+                  </td>
+                </tr>
+
+                <!-- Divider -->
+                <tr>
+                  <td style="padding-bottom:24px;">
+                    <hr style="border:none;border-top:1px solid #242426;margin:0;" />
+                  </td>
+                </tr>
+
+                <!-- Disclaimer -->
+                <tr>
+                  <td>
+                    <p style="margin:0;font-size:12px;line-height:1.5;color:#52525B;">
+                      Si no creaste esta cuenta, puedes ignorar este mensaje. Nadie más puede acceder a tu dirección sin confirmarla.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td align="center" style="padding-top:28px;">
+              <p style="margin:0;font-size:12px;color:#52525B;">
+                Alpha Trainer &mdash;
+                <a href="https://alphatrainer.net" style="color:#52525B;text-decoration:underline;">alphatrainer.net</a>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
