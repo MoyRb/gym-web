@@ -3,19 +3,20 @@ import { isSafeRedirectPath } from "@/lib/auth/app-url"
 
 // Simulate the /auth/confirm route logic (token_hash + type → verifyOtp → redirect)
 
-const { mockVerifyOtp, mockCreateClient } = vi.hoisted(() => {
+const { mockVerifyOtp, mockSignOut, mockCreateClient } = vi.hoisted(() => {
   const mockVerifyOtp = vi.fn()
+  const mockSignOut   = vi.fn().mockResolvedValue({ error: null })
   const mockCreateClient = vi.fn(async () => ({
-    auth: { verifyOtp: mockVerifyOtp },
+    auth: { verifyOtp: mockVerifyOtp, signOut: mockSignOut },
   }))
-  return { mockVerifyOtp, mockCreateClient }
+  return { mockVerifyOtp, mockSignOut, mockCreateClient }
 })
 
 vi.mock("@/lib/supabase/server", () => ({
   createClient: mockCreateClient,
 }))
 
-// Minimal route logic extracted for unit testing
+// Minimal route logic extracted for unit testing — mirrors the actual route handler
 async function handleConfirm(params: {
   token_hash: string | null
   type: string | null
@@ -37,10 +38,18 @@ async function handleConfirm(params: {
     return { redirectTo: `${origin}/auth/confirm-error` }
   }
 
+  // Recovery: keep temporary session for /reset-password to call updateUser
   if (type === "recovery") {
     return { redirectTo: `${origin}/reset-password` }
   }
 
+  // Email signup confirmation: sign out temporary session, redirect to confirmed page
+  if (type === "email") {
+    await supabase.auth.signOut()
+    return { redirectTo: `${origin}/auth/confirmed` }
+  }
+
+  // Other types: preserve session, use next or default
   const redirectPath = next && isSafeRedirectPath(next) ? next : "/dashboard/perfil"
   return { redirectTo: `${origin}${redirectPath}` }
 }
@@ -52,7 +61,7 @@ beforeEach(() => {
 })
 
 describe("/auth/confirm route logic (section 45)", () => {
-  it("valid token_hash + type=email → verifyOtp called → redirect dashboard/perfil", async () => {
+  it("valid token_hash + type=email → verifyOtp called → signOut → /auth/confirmed", async () => {
     mockVerifyOtp.mockResolvedValue({ error: null })
 
     const result = await handleConfirm({
@@ -63,10 +72,19 @@ describe("/auth/confirm route logic (section 45)", () => {
     })
 
     expect(mockVerifyOtp).toHaveBeenCalledWith({ token_hash: "abc123", type: "email" })
-    expect(result.redirectTo).toBe(`${ORIGIN}/dashboard/perfil`)
+    expect(mockSignOut).toHaveBeenCalledOnce()
+    expect(result.redirectTo).toBe(`${ORIGIN}/auth/confirmed`)
   })
 
-  it("valid token_hash + type=recovery → redirect /reset-password", async () => {
+  it("type=email: signOut is called to close the temporary verifyOtp session", async () => {
+    mockVerifyOtp.mockResolvedValue({ error: null })
+
+    await handleConfirm({ token_hash: "abc123", type: "email", next: null, origin: ORIGIN })
+
+    expect(mockSignOut).toHaveBeenCalledOnce()
+  })
+
+  it("valid token_hash + type=recovery → redirect /reset-password (NO signOut)", async () => {
     mockVerifyOtp.mockResolvedValue({ error: null })
 
     const result = await handleConfirm({
@@ -76,6 +94,7 @@ describe("/auth/confirm route logic (section 45)", () => {
       origin: ORIGIN,
     })
 
+    expect(mockSignOut).not.toHaveBeenCalled()
     expect(result.redirectTo).toBe(`${ORIGIN}/reset-password`)
   })
 
@@ -116,7 +135,34 @@ describe("/auth/confirm route logic (section 45)", () => {
     expect(result.redirectTo).toBe(`${ORIGIN}/auth/confirm-error`)
   })
 
-  it("valid next path → used as redirect target", async () => {
+  it("type=email_change with valid next path → next path used (session preserved)", async () => {
+    mockVerifyOtp.mockResolvedValue({ error: null })
+
+    const result = await handleConfirm({
+      token_hash: "abc123",
+      type: "email_change",
+      next: "/dashboard",
+      origin: ORIGIN,
+    })
+
+    expect(mockSignOut).not.toHaveBeenCalled()
+    expect(result.redirectTo).toBe(`${ORIGIN}/dashboard`)
+  })
+
+  it("type=email_change with external next (open redirect) → ignored, defaults to /dashboard/perfil", async () => {
+    mockVerifyOtp.mockResolvedValue({ error: null })
+
+    const result = await handleConfirm({
+      token_hash: "abc123",
+      type: "email_change",
+      next: "https://evil.com",
+      origin: ORIGIN,
+    })
+
+    expect(result.redirectTo).toBe(`${ORIGIN}/dashboard/perfil`)
+  })
+
+  it("type=email: next param is ignored (always redirects to /auth/confirmed)", async () => {
     mockVerifyOtp.mockResolvedValue({ error: null })
 
     const result = await handleConfirm({
@@ -126,20 +172,8 @@ describe("/auth/confirm route logic (section 45)", () => {
       origin: ORIGIN,
     })
 
-    expect(result.redirectTo).toBe(`${ORIGIN}/dashboard`)
-  })
-
-  it("external next path (open redirect attempt) → ignored, defaults to /dashboard/perfil", async () => {
-    mockVerifyOtp.mockResolvedValue({ error: null })
-
-    const result = await handleConfirm({
-      token_hash: "abc123",
-      type: "email",
-      next: "https://evil.com",
-      origin: ORIGIN,
-    })
-
-    expect(result.redirectTo).toBe(`${ORIGIN}/dashboard/perfil`)
+    // signup confirmation always goes to /auth/confirmed regardless of next
+    expect(result.redirectTo).toBe(`${ORIGIN}/auth/confirmed`)
   })
 
   it("token_hash is NOT included in any redirect URL", async () => {

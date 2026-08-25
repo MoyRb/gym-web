@@ -8,8 +8,8 @@ import {
   ChevronDown,
   ChevronUp,
   Clock,
-  Dumbbell,
   Loader2,
+  PenLine,
   Play,
   RefreshCw,
   Sparkles,
@@ -18,7 +18,6 @@ import {
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { getUserSafely } from "@/lib/supabase/auth-helpers"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { PageHeader } from "@/components/dashboard/PageHeader"
 import { getExperienciaLabel, getObjetivoLabel } from "@/utils/routines"
@@ -237,6 +236,11 @@ function WorkoutDaySection({
 
 // ── Página principal ──────────────────────────────────────────────────────────
 
+interface AIQuota {
+  allowed: boolean
+  nextAvailableAt: Date | null
+}
+
 type PageState = "loading" | "no_plan" | "active" | "error"
 type AIGenState = "idle" | "generating" | "success" | "fallback" | "error"
 
@@ -249,6 +253,7 @@ export default function RutinaPage() {
   const [errorMsg, setErrorMsg]     = useState<string | null>(null)
   const [aiProgress, setAIProgress] = useState<AIGenProgress>({ phase: "idle" })
   const [pendingGenId, setPendingGenId] = useState<string | null>(null)
+  const [aiQuota, setAIQuota]           = useState<AIQuota>({ allowed: true, nextAvailableAt: null })
 
   const loadPlan = useCallback(async () => {
     setState("loading")
@@ -332,6 +337,27 @@ export default function RutinaPage() {
   }, [])
 
   useEffect(() => { void loadPlan() }, [loadPlan])
+
+  // Load AI quota status for UX display (enforcement is server-side)
+  useEffect(() => {
+    const fetchQuota = async () => {
+      try {
+        const res = await fetch("/api/entitlements")
+        if (!res.ok) return
+        const json = (await res.json()) as {
+          aiGenerationAllowed: boolean
+          aiNextAvailableAt: string | null
+        }
+        setAIQuota({
+          allowed: json.aiGenerationAllowed,
+          nextAvailableAt: json.aiNextAvailableAt ? new Date(json.aiNextAvailableAt) : null,
+        })
+      } catch {
+        // Non-critical — UI falls back to allowing (server enforces)
+      }
+    }
+    void fetchQuota()
+  }, [])
 
   useEffect(() => {
     const stored = sessionStorage.getItem("ai_gen_id")
@@ -580,25 +606,73 @@ export default function RutinaPage() {
 
           <AIGenStatusBanner progress={aiProgress} />
 
+          {/* AI quota info */}
+          {!aiQuota.allowed && aiQuota.nextAvailableAt ? (
+            <div className="w-full max-w-xs rounded-lg border border-border/60 bg-muted/30 px-4 py-3 text-center">
+              <p className="text-xs font-medium text-muted-foreground">Plan Free · 1 rutina con IA cada 7 días</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Próxima generación disponible:{" "}
+                <span className="font-semibold text-foreground">
+                  {aiQuota.nextAvailableAt.toLocaleDateString("es-MX", { day: "numeric", month: "short" })}
+                  {" · "}
+                  {aiQuota.nextAvailableAt.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}
+                </span>
+              </p>
+              <Link
+                href="/pricing"
+                className="mt-2 inline-block text-xs font-semibold text-primary hover:underline"
+              >
+                Ver plan Pro
+              </Link>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">Plan Free · 1 rutina con IA cada 7 días</p>
+          )}
+
           <div className="flex flex-col gap-3 w-full max-w-xs sm:flex-row sm:max-w-none sm:justify-center">
-            <Button
-              size="lg"
-              className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
-              onClick={() => void handleGenerateAI()}
-              disabled={generatingAI || generating}
-            >
-              {generatingAI ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <AIGenButtonLabel progress={aiProgress} />
-                </>
-              ) : (
-                <>
+            {aiQuota.allowed ? (
+              <Button
+                size="lg"
+                className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+                onClick={() => void handleGenerateAI()}
+                disabled={generatingAI || generating}
+              >
+                {generatingAI ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <AIGenButtonLabel progress={aiProgress} />
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4" />
+                    Generar con IA
+                  </>
+                )}
+              </Button>
+            ) : (
+              <Link href="/pricing">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="gap-2 w-full"
+                  disabled={generatingAI}
+                >
                   <Sparkles className="h-4 w-4" />
-                  Generar con IA
-                </>
-              )}
-            </Button>
+                  Mejorar a Pro
+                </Button>
+              </Link>
+            )}
+            <Link href="/dashboard/rutina/nueva">
+              <Button
+                variant="outline"
+                size="lg"
+                className="gap-2 w-full sm:w-auto"
+                disabled={generatingAI || generating}
+              >
+                <PenLine className="h-4 w-4" />
+                Crear manualmente
+              </Button>
+            </Link>
             <Button
               variant="outline"
               size="lg"
@@ -653,21 +727,41 @@ export default function RutinaPage() {
 
           {/* Regenerate actions */}
           <div className="flex items-center gap-2 shrink-0">
-            <Button
-              size="sm"
-              className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
-              onClick={() => void handleGenerateAI()}
-              disabled={generatingAI || generating}
-            >
-              {generatingAI ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Sparkles className="h-3.5 w-3.5" />
-              )}
-              <span className="hidden sm:inline">
-                {generatingAI ? <AIGenButtonLabel progress={aiProgress} /> : "Nueva con IA"}
-              </span>
-            </Button>
+            {aiQuota.allowed ? (
+              <Button
+                size="sm"
+                className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
+                onClick={() => void handleGenerateAI()}
+                disabled={generatingAI || generating}
+              >
+                {generatingAI ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Sparkles className="h-3.5 w-3.5" />
+                )}
+                <span className="hidden sm:inline">
+                  {generatingAI ? <AIGenButtonLabel progress={aiProgress} /> : "Nueva con IA"}
+                </span>
+              </Button>
+            ) : (
+              <Link href="/pricing">
+                <Button size="sm" variant="outline" className="gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Pro</span>
+                </Button>
+              </Link>
+            )}
+            <Link href={`/dashboard/rutina/nueva?from=${plan.id}`}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                disabled={generatingAI || generating}
+              >
+                <PenLine className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Editar</span>
+              </Button>
+            </Link>
             <Button
               variant="outline"
               size="sm"

@@ -32,12 +32,21 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/auth/confirm-error", origin))
   }
 
-  // Password recovery: redirect to the reset-password page.
+  // Password recovery: keep the temporary session alive so /reset-password
+  // can call supabase.auth.updateUser({ password }). Do NOT sign out here.
   if (type === "recovery") {
     return NextResponse.redirect(new URL("/reset-password", origin))
   }
 
-  // Email confirmation (signup, email_change, etc.): redirect to dashboard or next.
+  // Email signup confirmation: sign out the temporary session created by
+  // verifyOtp so the user must log in explicitly with their credentials.
+  if (type === "email") {
+    await supabase.auth.signOut()
+    return NextResponse.redirect(new URL("/auth/confirmed", origin))
+  }
+
+  // Other types (email_change, invite, magiclink): preserve session, redirect to
+  // dashboard or the requested next path. These are not currently used in production.
   const redirectPath =
     next && isSafeRedirectPath(next) ? next : "/dashboard/perfil"
 

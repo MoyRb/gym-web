@@ -3,7 +3,6 @@
 import Link from "next/link"
 import { Eye, EyeOff, CheckCircle } from "lucide-react"
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -13,8 +12,6 @@ import { createClient } from "@/lib/supabase/client"
 import { analytics } from "@/utils/analytics"
 
 export default function ResetPasswordPage() {
-  const router = useRouter()
-
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [password, setPassword] = useState("")
@@ -59,6 +56,8 @@ export default function ResetPasswordPage() {
     }
 
     void analytics.passwordResetCompleted()
+    // Sign out the temporary recovery session — user must log in with new credentials.
+    await supabase.auth.signOut()
     setSuccess(true)
     setIsLoading(false)
   }
@@ -92,16 +91,15 @@ export default function ResetPasswordPage() {
                 <div>
                   <p className="font-semibold">Contraseña actualizada</p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Tu contraseña ha sido cambiada exitosamente.
+                    Ya puedes entrar con tu nueva contraseña.
                   </p>
                 </div>
-                <Button
-                  type="button"
-                  className="mt-2 w-full bg-primary text-primary-foreground hover:bg-primary/90"
-                  onClick={() => router.replace("/dashboard/perfil")}
+                <Link
+                  href="/login"
+                  className="mt-2 flex h-10 w-full items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
                 >
-                  Continuar a Alpha Trainer
-                </Button>
+                  Iniciar sesión
+                </Link>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>

@@ -742,6 +742,31 @@ export interface Database {
           }
         ]
       }
+      user_access: {
+        Row: {
+          user_id: string
+          plan: "free" | "pro" | "founder"
+          source: string
+          valid_until: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          plan?: "free" | "pro" | "founder"
+          source?: string
+          valid_until?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          plan?: "free" | "pro" | "founder"
+          source?: string
+          valid_until?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ai_generation_sessions: {
         Row: {
           id: string

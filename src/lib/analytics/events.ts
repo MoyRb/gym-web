@@ -21,6 +21,19 @@ export const EVENTS = {
   AI_GENERATION_STARTED:   "ai_generation_started",
   AI_GENERATION_COMPLETED: "ai_generation_completed",
   AI_GENERATION_FAILED:    "ai_generation_failed",
+
+  // ── AI quota ───────────────────────────────────────────────────────────────
+  AI_QUOTA_BLOCKED: "ai_quota_blocked",
+
+  // ── Manual plan lifecycle ──────────────────────────────────────────────────
+  MANUAL_PLAN_STARTED:   "manual_plan_started",
+  MANUAL_PLAN_CREATED:   "manual_plan_created",
+  MANUAL_PLAN_UPDATED:   "manual_plan_updated",
+  MANUAL_PLAN_ACTIVATED: "manual_plan_activated",
+
+  // ── Monetization ──────────────────────────────────────────────────────────
+  PRICING_VIEWED:  "pricing_viewed",
+  UPGRADE_CLICKED: "upgrade_clicked",
 } as const
 
 export type EventName = typeof EVENTS[keyof typeof EVENTS]

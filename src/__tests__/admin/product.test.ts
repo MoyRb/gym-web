@@ -46,8 +46,10 @@ describe("EVENTS taxonomy", () => {
     expect(EVENTS.AI_GENERATION_FAILED).toBe("ai_generation_failed")
   })
 
-  it("has exactly 9 V1 event types", () => {
-    expect(Object.keys(EVENTS).length).toBe(9)
+  it("defines AI quota and manual plan events", () => {
+    expect(EVENTS.AI_QUOTA_BLOCKED).toBe("ai_quota_blocked")
+    expect(EVENTS.MANUAL_PLAN_CREATED).toBe("manual_plan_created")
+    expect(EVENTS.PRICING_VIEWED).toBe("pricing_viewed")
   })
 })
 

@@ -27,6 +27,7 @@
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server"
 import { trackServerEvent } from "@/lib/analytics/server"
 import { EVENTS } from "@/lib/analytics/events"
+import { getUserEntitlements } from "@/lib/entitlements/get-entitlements"
 import { toUserProfile } from "@/lib/fitness-data"
 import { buildWorkoutSplit, buildBatches } from "@/lib/workouts/ai/workout-split"
 import { getCandidateExercises } from "@/lib/workouts/ai/candidate-exercises"
@@ -88,6 +89,24 @@ export async function POST() {
     created_at: "",
     updated_at: "",
   })
+
+  // Check AI quota (server-side enforcement — client UI is not sufficient)
+  const entitlements = await getUserEntitlements(user.id)
+  if (!entitlements.aiGenerationAllowed) {
+    void trackServerEvent({
+      name: EVENTS.AI_QUOTA_BLOCKED,
+      userId: user.id,
+      metadata: { plan: entitlements.plan },
+    })
+    return Response.json(
+      {
+        code: "ai_quota_exceeded",
+        next_available_at: entitlements.aiNextAvailableAt?.toISOString() ?? null,
+        error: "Has alcanzado el límite de generaciones con IA para tu plan.",
+      },
+      { status: 429 },
+    )
+  }
 
   // Check feature flag
   if (process.env.AI_WORKOUT_GENERATION_ENABLED !== "true") {
