@@ -2,12 +2,21 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Save, RotateCcw, CheckCircle, BookOpen, BarChart3, Shield, CheckCircle2, Clock, UserCircle } from "lucide-react"
+import { Save, RotateCcw, CheckCircle, BookOpen, BarChart3, Shield, CheckCircle2, Clock, UserCircle, AlertTriangle, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { ImcCard } from "@/components/dashboard/ImcCard"
 import { PageHeader } from "@/components/dashboard/PageHeader"
 import { SignOutButton } from "@/components/dashboard/SignOutButton"
@@ -369,6 +378,9 @@ export default function PerfilPage() {
 
           {/* Account security — separate section, outside the profile form */}
           <AccountSecurityCard user={authUser} />
+
+          {/* Danger zone — account deletion */}
+          <DangerZoneCard />
         </div>
 
         <div className="flex flex-col gap-4">
@@ -425,6 +437,128 @@ export default function PerfilPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+function DangerZoneCard() {
+  const [open, setOpen] = useState(false)
+  const [confirmation, setConfirmation] = useState("")
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+
+  const REQUIRED_CONFIRMATION = "ELIMINAR"
+  const confirmed = confirmation === REQUIRED_CONFIRMATION
+
+  async function handleDelete() {
+    if (!confirmed) return
+    setIsDeleting(true)
+    setDeleteError(null)
+
+    try {
+      const res = await fetch("/api/account/delete", { method: "POST" })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setDeleteError((data as { error?: string }).error ?? "Error desconocido. Intenta de nuevo.")
+        return
+      }
+      // Sign out and redirect to home
+      const { createClient: createSupabaseClient } = await import("@/lib/supabase/client")
+      const supabase = createSupabaseClient()
+      await supabase.auth.signOut()
+      window.location.href = "/"
+    } catch {
+      setDeleteError("Error de conexión. Intenta de nuevo.")
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  return (
+    <Card className="mt-6 border-destructive/30">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base text-destructive">
+          <AlertTriangle className="h-4 w-4" />
+          Zona de peligro
+        </CardTitle>
+        <CardDescription>Acciones irreversibles sobre tu cuenta</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-medium">Eliminar cuenta</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Elimina tu cuenta y todos tus datos de forma permanente.
+            </p>
+          </div>
+          <Dialog open={open} onOpenChange={(v) => {
+            setOpen(v)
+            if (!v) {
+              setConfirmation("")
+              setDeleteError(null)
+            }
+          }}>
+            <DialogTrigger
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-destructive/50 px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Eliminar cuenta
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-destructive" />
+                  Eliminar tu cuenta
+                </DialogTitle>
+                <DialogDescription>
+                  Esta acción eliminará tu cuenta y los datos asociados y no se puede deshacer.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="flex flex-col gap-4 py-2">
+                <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+                  Se eliminarán permanentemente tu perfil, rutinas, sesiones de entrenamiento, mediciones de progreso y datos de cuenta.
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="delete-confirm" className="text-sm">
+                    Escribe <span className="font-mono font-bold text-destructive">{REQUIRED_CONFIRMATION}</span> para confirmar
+                  </Label>
+                  <Input
+                    id="delete-confirm"
+                    value={confirmation}
+                    onChange={(e) => setConfirmation(e.target.value)}
+                    placeholder={REQUIRED_CONFIRMATION}
+                    className="font-mono"
+                    autoComplete="off"
+                  />
+                </div>
+
+                {deleteError && (
+                  <p className="text-sm text-destructive">{deleteError}</p>
+                )}
+              </div>
+
+              <DialogFooter className="gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setOpen(false)}
+                  disabled={isDeleting}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={handleDelete}
+                  disabled={!confirmed || isDeleting}
+                >
+                  {isDeleting ? "Eliminando..." : "Confirmar eliminación"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 

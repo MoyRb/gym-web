@@ -34,6 +34,11 @@ export const EVENTS = {
   // ── Monetization ──────────────────────────────────────────────────────────
   PRICING_VIEWED:  "pricing_viewed",
   UPGRADE_CLICKED: "upgrade_clicked",
+
+  // ── Account lifecycle ──────────────────────────────────────────────────────
+  // Fired server-side before calling auth.admin.deleteUser, while user still exists.
+  // After deletion, analytics_events.user_id is set to NULL automatically (SET NULL FK).
+  ACCOUNT_DELETION_STARTED: "account_deletion_started",
 } as const
 
 export type EventName = typeof EVENTS[keyof typeof EVENTS]

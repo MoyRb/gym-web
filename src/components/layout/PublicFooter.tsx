@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { AlphaTrainerLogo } from "@/components/layout/AlphaTrainerLogo"
-import { siteConfig } from "@/config/site"
+import { siteConfig, developerConfig } from "@/config/site"
 
 const footerLinks = {
   producto: [
@@ -8,14 +8,18 @@ const footerLinks = {
     { label: "Ejercicios", href: "/dashboard/exercises" },
     { label: "Mi plan", href: "/dashboard/rutina" },
     { label: "Progreso", href: "/dashboard/progress" },
+    { label: "Precios", href: "/pricing" },
   ],
   cuenta: [
     { label: "Crear cuenta", href: "/register" },
     { label: "Iniciar sesión", href: "/login" },
+    { label: "Soporte", href: "/soporte" },
+    { label: "Eliminar cuenta", href: "/eliminar-cuenta" },
   ],
   legal: [
-    { label: "Privacidad", href: "#" },
-    { label: "Términos", href: "#" },
+    { label: "Privacidad", href: "/privacidad" },
+    { label: "Términos", href: "/terminos" },
+    { label: "Seguridad", href: "/seguridad" },
   ],
 }
 
@@ -90,12 +94,28 @@ export function PublicFooter() {
           </div>
         </div>
 
-        <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-border pt-6 sm:flex-row">
+        {/* Bottom bar */}
+        <div className="mt-10 flex flex-col items-center justify-between gap-2 border-t border-border pt-6 sm:flex-row sm:gap-4">
           <p className="text-xs text-muted-foreground">
             © {new Date().getFullYear()} {siteConfig.name}. Todos los derechos reservados.
           </p>
-          <p className="text-xs text-muted-foreground">
-            Impulsado por IA
+          <p className="text-xs text-muted-foreground flex items-center gap-3">
+            <span>
+              Desarrollado por{" "}
+              {developerConfig.url ? (
+                <a
+                  href={developerConfig.url}
+                  className="hover:text-foreground transition-colors"
+                  rel="noopener noreferrer"
+                >
+                  {developerConfig.name}
+                </a>
+              ) : (
+                <span>{developerConfig.name}</span>
+              )}
+            </span>
+            <span className="text-muted-foreground/40" aria-hidden>·</span>
+            <span>Impulsado por IA</span>
           </p>
         </div>
       </div>

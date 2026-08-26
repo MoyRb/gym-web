@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge"
 
 export const metadata = {
   title: "Admin — Alpha Trainer",
+  robots: { index: false, follow: false },
 }
 
 export default async function AdminLayout({

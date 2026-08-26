@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server"
 
 export const metadata = {
   title: "Dashboard",
+  robots: { index: false, follow: false },
 }
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {

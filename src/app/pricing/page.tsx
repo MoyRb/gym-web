@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import Link from "next/link"
 import { Check, Sparkles, Lock } from "lucide-react"
 import { PublicHeader } from "@/components/layout/PublicHeader"
@@ -5,6 +6,14 @@ import { PublicFooter } from "@/components/layout/PublicFooter"
 import { trackServerEvent } from "@/lib/analytics/server"
 import { EVENTS } from "@/lib/analytics/events"
 import { createClient } from "@/lib/supabase/server"
+import { siteConfig } from "@/config/site"
+
+export const metadata: Metadata = {
+  title: "Precios",
+  description:
+    "Planes de Alpha Trainer. Rutinas manuales ilimitadas gratis. Generación con IA disponible desde el plan gratuito.",
+  alternates: { canonical: `${siteConfig.url}/pricing` },
+}
 
 const FREE_FEATURES = [
   "Rutinas manuales ilimitadas",

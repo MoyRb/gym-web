@@ -1,6 +1,7 @@
 export const siteConfig = {
   name: "Alpha Trainer",
   shortName: "Alpha Trainer",
+  url: "https://alphatrainer.net",
   slogan: "Entrena con inteligencia. Progresa con datos.",
   description:
     "Alpha Trainer es tu sistema de entrenamiento personal impulsado por IA. Rutinas personalizadas según tu objetivo, guía de ejecución con demostraciones visuales y seguimiento de progreso real.",
@@ -32,6 +33,13 @@ export const siteConfig = {
     routineTable: "routine_recommendations",
     downloadsTable: "user_resource_downloads",
   },
+} as const
+
+// Developer attribution — url is null until Formex.3D has an official website.
+// Set to a string to enable the link in the footer.
+export const developerConfig = {
+  name: "Formex.3D",
+  url: null as string | null,
 } as const
 
 export type SiteConfig = typeof siteConfig
