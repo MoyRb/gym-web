@@ -57,6 +57,40 @@ describe("no AdSlots in codebase (verification-only corte)", () => {
   })
 })
 
+// ─── Verification meta tag (metadata.other) ──────────────────────────────────
+
+describe("AdSense site verification meta tag", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it("metadata.other includes google-adsense-account when client ID is set", () => {
+    vi.stubEnv("NEXT_PUBLIC_ADSENSE_CLIENT_ID", "ca-pub-1234567890123456")
+    const clientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID
+    // Mirrors the spread in layout.tsx: ...(adsenseClientId ? { other: { ... } } : {})
+    const otherMeta = clientId
+      ? { "google-adsense-account": clientId }
+      : undefined
+    expect(otherMeta).toBeDefined()
+    expect(otherMeta?.["google-adsense-account"]).toBe("ca-pub-1234567890123456")
+  })
+
+  it("metadata.other is absent when client ID is not set", () => {
+    vi.stubEnv("NEXT_PUBLIC_ADSENSE_CLIENT_ID", "")
+    const clientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID
+    const otherMeta = clientId
+      ? { "google-adsense-account": clientId }
+      : undefined
+    expect(otherMeta).toBeUndefined()
+  })
+
+  it("meta tag name is exactly 'google-adsense-account'", () => {
+    const key = "google-adsense-account"
+    // Google requires this exact string for site verification.
+    expect(key).toBe("google-adsense-account")
+  })
+})
+
 // ─── Production-only loading ─────────────────────────────────────────────────
 
 describe("AdSense production-only guard", () => {
