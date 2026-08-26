@@ -1,12 +1,16 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { Check, Sparkles, Lock } from "lucide-react"
+import { Check, Sparkles } from "lucide-react"
 import { PublicHeader } from "@/components/layout/PublicHeader"
 import { PublicFooter } from "@/components/layout/PublicFooter"
 import { trackServerEvent } from "@/lib/analytics/server"
 import { EVENTS } from "@/lib/analytics/events"
-import { createClient } from "@/lib/supabase/server"
+import { createClient, createServiceRoleClient } from "@/lib/supabase/server"
 import { siteConfig } from "@/config/site"
+import { getUserEntitlements } from "@/lib/entitlements/get-entitlements"
+import { accountHasVerifiedRealEmail } from "@/lib/auth/username"
+import { PricingCTA } from "./PricingCTA"
+import type { PricingCTAStatus } from "./PricingCTA"
 
 export const metadata: Metadata = {
   title: "Precios",
@@ -40,15 +44,49 @@ const PRO_FEATURES = [
 ]
 
 export default async function PricingPage() {
-  // Track view (non-blocking)
+  // Resolve user and plan server-side
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
   void trackServerEvent({
     name: EVENTS.PRICING_VIEWED,
     userId: user?.id ?? null,
     metadata: {},
   })
+
+  // Determine which CTA state to render
+  let ctaStatus: PricingCTAStatus = "anonymous"
+
+  if (user) {
+    const isVerified = accountHasVerifiedRealEmail(user)
+
+    if (!isVerified) {
+      ctaStatus = "unverified"
+    } else {
+      const [entitlements, stripeSubResult] = await Promise.all([
+        getUserEntitlements(user.id),
+        createServiceRoleClient()
+          .from("billing_subscriptions")
+          .select("status")
+          .eq("user_id", user.id)
+          .in("status", ["active", "trialing", "past_due"])
+          .maybeSingle(),
+      ])
+
+      if (entitlements.plan === "founder") {
+        ctaStatus = "founder"
+      } else if (entitlements.plan === "pro" && stripeSubResult.data) {
+        ctaStatus = "pro_stripe"
+      } else if (entitlements.plan === "pro") {
+        // Pro via manual grant (no Stripe) — treat as founder for pricing display
+        ctaStatus = "founder"
+      } else {
+        ctaStatus = "free"
+      }
+    }
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -123,19 +161,8 @@ export default async function PricingPage() {
                 </div>
               </div>
 
-              {/* CTA — disabled until Stripe */}
-              <div className="flex flex-col gap-2">
-                <button
-                  disabled
-                  className="flex h-11 items-center justify-center gap-2 rounded-lg bg-primary/40 text-primary-foreground text-sm font-semibold cursor-not-allowed opacity-60"
-                >
-                  <Lock className="h-4 w-4" />
-                  Próximamente
-                </button>
-                <p className="text-center text-xs text-muted-foreground">
-                  Los pagos aún no están disponibles.
-                </p>
-              </div>
+              {/* CTA — dynamic based on user auth/plan state */}
+              <PricingCTA status={ctaStatus} />
 
               <div className="flex flex-col gap-2.5">
                 {PRO_FEATURES.map((f) => (

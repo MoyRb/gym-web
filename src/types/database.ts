@@ -803,6 +803,74 @@ export interface Database {
         }
         Relationships: []
       }
+      billing_customers: {
+        Row: {
+          user_id: string
+          stripe_customer_id: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          stripe_customer_id: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          stripe_customer_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      billing_subscriptions: {
+        Row: {
+          stripe_subscription_id: string
+          user_id: string
+          stripe_customer_id: string
+          stripe_price_id: string
+          status: string
+          current_period_end: string | null
+          cancel_at_period_end: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          stripe_subscription_id: string
+          user_id: string
+          stripe_customer_id: string
+          stripe_price_id: string
+          status: string
+          current_period_end?: string | null
+          cancel_at_period_end?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          stripe_customer_id?: string
+          stripe_price_id?: string
+          status?: string
+          current_period_end?: string | null
+          cancel_at_period_end?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      billing_webhook_events: {
+        Row: {
+          stripe_event_id: string
+          event_type: string
+          processed_at: string
+        }
+        Insert: {
+          stripe_event_id: string
+          event_type: string
+          processed_at?: string
+        }
+        Update: {
+          event_type?: string
+        }
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: {

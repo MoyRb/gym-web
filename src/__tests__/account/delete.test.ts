@@ -12,11 +12,12 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest"
 
-const { mockGetUser, mockDeleteUser, mockTrackServerEvent } = vi.hoisted(() => {
+const { mockGetUser, mockDeleteUser, mockTrackServerEvent, mockCancelStripe } = vi.hoisted(() => {
   const mockGetUser = vi.fn()
   const mockDeleteUser = vi.fn()
   const mockTrackServerEvent = vi.fn().mockResolvedValue(undefined)
-  return { mockGetUser, mockDeleteUser, mockTrackServerEvent }
+  const mockCancelStripe = vi.fn().mockResolvedValue({ success: true })
+  return { mockGetUser, mockDeleteUser, mockTrackServerEvent, mockCancelStripe }
 })
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -26,6 +27,11 @@ vi.mock("@/lib/supabase/server", () => ({
   createServiceRoleClient: vi.fn().mockReturnValue({
     auth: { admin: { deleteUser: mockDeleteUser } },
   }),
+}))
+
+vi.mock("@/lib/stripe/sync", () => ({
+  cancelStripeSubscriptionsForUser: mockCancelStripe,
+  syncStripeSubscription: vi.fn().mockResolvedValue(undefined),
 }))
 
 vi.mock("@/lib/analytics/server", () => ({
@@ -38,6 +44,7 @@ describe("POST /api/account/delete", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockTrackServerEvent.mockResolvedValue(undefined)
+    mockCancelStripe.mockResolvedValue({ success: true })
   })
 
   it("returns 401 when no authenticated user", async () => {

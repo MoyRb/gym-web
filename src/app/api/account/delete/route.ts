@@ -2,6 +2,7 @@ import "server-only"
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server"
 import { trackServerEvent } from "@/lib/analytics/server"
 import { EVENTS } from "@/lib/analytics/events"
+import { cancelStripeSubscriptionsForUser } from "@/lib/stripe/sync"
 
 export async function POST(): Promise<Response> {
   // 1. Resolve the authenticated user from the server session.
@@ -27,9 +28,20 @@ export async function POST(): Promise<Response> {
       metadata: {},
     })
 
-    // 3. Delete the auth user using service_role — this triggers all cascades:
+    // 3. Cancel any active Stripe subscriptions BEFORE deleting the auth user.
+    //    This prevents orphaned Stripe subscriptions that would keep charging
+    //    the user after their account is gone.
+    //    If cancellation fails, we MUST NOT proceed with deletion.
+    const cancelResult = await cancelStripeSubscriptionsForUser(userId)
+    if (!cancelResult.success) {
+      console.error("[DELETE /api/account/delete] Stripe cancellation failed for user:", userId)
+      return Response.json({ error: cancelResult.error }, { status: 500 })
+    }
+
+    // 4. Delete the auth user using service_role — this triggers all cascades:
     //    profiles, workout_plans, sessions, sets, progress_measurements,
-    //    ai_generation_sessions, user_roles, user_access, etc.
+    //    ai_generation_sessions, user_roles, user_access, billing_customers,
+    //    billing_subscriptions, etc.
     //    analytics_events.user_id is SET NULL (data is anonymized, not deleted).
     const service = createServiceRoleClient()
     const { error } = await service.auth.admin.deleteUser(userId)

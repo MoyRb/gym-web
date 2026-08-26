@@ -32,8 +32,11 @@ export const EVENTS = {
   MANUAL_PLAN_ACTIVATED: "manual_plan_activated",
 
   // ── Monetization ──────────────────────────────────────────────────────────
-  PRICING_VIEWED:  "pricing_viewed",
-  UPGRADE_CLICKED: "upgrade_clicked",
+  PRICING_VIEWED:       "pricing_viewed",
+  UPGRADE_CLICKED:      "upgrade_clicked",
+  CHECKOUT_STARTED:     "checkout_started",
+  CHECKOUT_COMPLETED:   "checkout_completed",
+  BILLING_PORTAL_OPENED: "billing_portal_opened",
 
   // ── Account lifecycle ──────────────────────────────────────────────────────
   // Fired server-side before calling auth.admin.deleteUser, while user still exists.

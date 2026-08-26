@@ -1,15 +1,16 @@
 /**
  * GET /api/entitlements
  *
- * Returns the authenticated user's entitlements.
+ * Returns the authenticated user's entitlements and billing context.
  * Used by client components to display quota info and gate UI.
  * Actual enforcement happens server-side in the respective API routes.
  */
 
-import { createClient } from "@/lib/supabase/server"
+import { createClient, createServiceRoleClient } from "@/lib/supabase/server"
 import { getUserEntitlements } from "@/lib/entitlements/get-entitlements"
 
 export const runtime = "nodejs"
+export const dynamic = "force-dynamic"
 
 export async function GET() {
   const supabase = await createClient()
@@ -21,7 +22,16 @@ export async function GET() {
     return Response.json({ error: "No autorizado" }, { status: 401 })
   }
 
-  const entitlements = await getUserEntitlements(user.id)
+  const [entitlements, stripeSubResult] = await Promise.all([
+    getUserEntitlements(user.id),
+    // Check for active Stripe subscription (determines portal button visibility)
+    createServiceRoleClient()
+      .from("billing_subscriptions")
+      .select("status")
+      .eq("user_id", user.id)
+      .in("status", ["active", "trialing", "past_due"])
+      .maybeSingle(),
+  ])
 
   return Response.json({
     plan: entitlements.plan,
@@ -31,5 +41,7 @@ export async function GET() {
     aiNextAvailableAt: entitlements.aiNextAvailableAt?.toISOString() ?? null,
     showAds: entitlements.showAds,
     advancedAnalytics: entitlements.advancedAnalytics,
+    // True when user has an active Stripe subscription (shows portal button in UI)
+    hasActiveStripeSubscription: !!stripeSubResult.data,
   })
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Save, RotateCcw, CheckCircle, BookOpen, BarChart3, Shield, CheckCircle2, Clock, UserCircle, AlertTriangle, Trash2 } from "lucide-react"
+import { Save, RotateCcw, CheckCircle, BookOpen, BarChart3, Shield, CheckCircle2, Clock, UserCircle, AlertTriangle, Trash2, CreditCard, Sparkles, Crown, ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -379,6 +379,9 @@ export default function PerfilPage() {
           {/* Account security — separate section, outside the profile form */}
           <AccountSecurityCard user={authUser} />
 
+          {/* Plan y facturación */}
+          <BillingCard />
+
           {/* Danger zone — account deletion */}
           <DangerZoneCard />
         </div>
@@ -557,6 +560,104 @@ function DangerZoneCard() {
             </DialogContent>
           </Dialog>
         </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+interface EntitlementsResponse {
+  plan: "free" | "pro" | "founder"
+  hasActiveStripeSubscription: boolean
+}
+
+function BillingCard() {
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [entitlements, setEntitlements] = useState<EntitlementsResponse | null>(null)
+
+  useEffect(() => {
+    void fetch("/api/entitlements")
+      .then((r) => r.json())
+      .then((data: EntitlementsResponse) => setEntitlements(data))
+      .catch(() => {/* non-fatal */})
+  }, [])
+
+  async function handlePortal() {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch("/api/billing/portal", { method: "POST" })
+      const data = (await res.json()) as { url?: string; error?: string }
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        setError(data.error ?? "No se pudo abrir el portal de facturación.")
+      }
+    } catch {
+      setError("Error de conexión. Intenta de nuevo.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const plan = entitlements?.plan ?? null
+  const hasSub = entitlements?.hasActiveStripeSubscription ?? false
+
+  return (
+    <Card className="mt-6">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <CreditCard className="h-4 w-4 text-muted-foreground" />
+          Plan y facturación
+        </CardTitle>
+        <CardDescription>Tu plan actual y opciones de suscripción</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Plan actual
+            </span>
+            {plan === null ? (
+              <span className="text-sm text-muted-foreground">Cargando...</span>
+            ) : plan === "founder" ? (
+              <div className="flex items-center gap-2">
+                <Crown className="h-4 w-4 text-primary" />
+                <span className="text-sm font-semibold text-primary">Acceso Founder</span>
+              </div>
+            ) : plan === "pro" ? (
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <span className="text-sm font-semibold text-primary">Alpha Trainer Pro</span>
+              </div>
+            ) : (
+              <span className="text-sm font-medium">Free</span>
+            )}
+          </div>
+
+          {plan === "free" && (
+            <a
+              href="/pricing"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              Mejorar a Pro
+            </a>
+          )}
+
+          {plan === "pro" && hasSub && (
+            <button
+              onClick={() => { void handlePortal() }}
+              disabled={loading}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted transition-colors disabled:opacity-50"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              {loading ? "Cargando..." : "Administrar suscripción"}
+            </button>
+          )}
+        </div>
+
+        {error && <p className="text-sm text-destructive">{error}</p>}
       </CardContent>
     </Card>
   )
