@@ -3,6 +3,7 @@ import { Space_Grotesk, Inter } from "next/font/google"
 import { siteConfig, developerConfig } from "@/config/site"
 import { ThemeProvider } from "@/components/layout/ThemeProvider"
 import { Toaster } from "@/components/ui/sonner"
+import { GoogleAdSense } from "@/components/ads/GoogleAdSense"
 import "./globals.css"
 
 const inter = Inter({
@@ -76,6 +77,7 @@ export default function RootLayout({
       <body className="flex min-h-full flex-col">
         <ThemeProvider>{children}</ThemeProvider>
         <Toaster />
+        <GoogleAdSense />
       </body>
     </html>
   )

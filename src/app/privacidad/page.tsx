@@ -140,10 +140,31 @@ export default function PrivacidadPage() {
                     para entregar estos mensajes.
                   </p>
                 </div>
+                <div className="rounded-lg border border-border bg-card p-4">
+                  <p className="font-semibold">Google AdSense (publicidad)</p>
+                  <p className="text-muted-foreground text-xs mt-1">
+                    Alpha Trainer puede utilizar Google AdSense para mostrar
+                    publicidad en la versión gratuita del servicio. Google puede
+                    usar cookies y tecnologías similares para personalizar los
+                    anuncios mostrados. Los usuarios con plan Pro no ven
+                    publicidad. Para más información, consulta la{" "}
+                    <a
+                      href="https://policies.google.com/privacy"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      política de privacidad de Google
+                    </a>
+                    .
+                  </p>
+                </div>
               </div>
               <p className="text-muted-foreground mt-3">
-                No vendemos tus datos personales a terceros ni los compartimos
-                con fines publicitarios externos.
+                No vendemos tus datos personales a terceros. La publicidad
+                mostrada en la versión gratuita es gestionada por Google
+                AdSense; no compartimos tu perfil de entrenamiento ni datos de
+                salud con fines publicitarios.
               </p>
             </section>
 
