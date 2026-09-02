@@ -234,3 +234,24 @@ describe("POST /api/billing/checkout — response", () => {
     expect(body.url).toBe("https://checkout.stripe.com/session/abc")
   })
 })
+
+// ── DB error handling — fail closed ──────────────────────────────────────────
+
+describe("POST /api/billing/checkout — DB error handling", () => {
+  it("returns 500 when subscription lookup fails with DB error (not treated as no-sub)", async () => {
+    mockGetUser.mockResolvedValue({ data: { user: VERIFIED_USER } })
+
+    // Simulate a DB error on the subscription lookup
+    const chain = makeChain(null)
+    ;(chain.maybeSingle as ReturnType<typeof vi.fn>).mockResolvedValue({
+      data: null,
+      error: { code: "PGRST" },
+    })
+    mockFrom.mockReturnValue(chain)
+
+    const res = await POST()
+    expect(res.status).toBe(500)
+    // Should NOT have attempted to create a checkout session
+    expect(mockCreateSession).not.toHaveBeenCalled()
+  })
+})

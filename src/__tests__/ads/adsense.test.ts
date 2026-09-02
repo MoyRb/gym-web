@@ -91,6 +91,74 @@ describe("AdSense site verification meta tag", () => {
   })
 })
 
+// ─── adsConfig ───────────────────────────────────────────────────────────────
+
+describe("adsConfig", () => {
+  it("enabled defaults to false when NEXT_PUBLIC_ADS_ENABLED is not set to 'true'", async () => {
+    // In the test environment the env var is empty/unset → enabled must be false.
+    const { adsConfig } = await import("@/lib/ads/config")
+    // If the var is not exactly "true", enabled is false.
+    expect(process.env.NEXT_PUBLIC_ADS_ENABLED).not.toBe("true")
+    expect(adsConfig.enabled).toBe(false)
+  })
+
+  it("clientId reads from NEXT_PUBLIC_ADSENSE_CLIENT_ID", async () => {
+    const { adsConfig } = await import("@/lib/ads/config")
+    // Value may be set or null depending on env, but must not throw.
+    expect(typeof adsConfig.clientId === "string" || adsConfig.clientId === null).toBe(true)
+  })
+
+  it("slots object contains all V1 placements", async () => {
+    const { adsConfig } = await import("@/lib/ads/config")
+    const expectedPlacements = [
+      "dashboard_mid",
+      "exercise_catalog_mid",
+      "exercise_detail_bottom",
+      "progress_mid",
+      "post_workout",
+    ]
+    for (const placement of expectedPlacements) {
+      expect(placement in adsConfig.slots).toBe(true)
+    }
+  })
+
+  it("all slot values are null or non-empty strings (no undefined)", async () => {
+    const { adsConfig } = await import("@/lib/ads/config")
+    for (const [, value] of Object.entries(adsConfig.slots)) {
+      expect(value === null || (typeof value === "string" && value.length > 0)).toBe(true)
+    }
+  })
+})
+
+// ─── AdSlot rendering guard (pure logic) ─────────────────────────────────────
+
+describe("AdSlot shouldRender guard", () => {
+  // Mirrors the guard: adsConfig.enabled && Boolean(slotId) && showAds
+  const shouldRender = (enabled: boolean, slotId: string | null, showAds: boolean) =>
+    enabled && Boolean(slotId) && showAds
+
+  it("returns false when ADS_ENABLED=false", () => {
+    expect(shouldRender(false, "1234567890", true)).toBe(false)
+  })
+
+  it("returns false when slotId is null", () => {
+    expect(shouldRender(true, null, true)).toBe(false)
+  })
+
+  it("returns false when showAds=false (Pro/Founder user)", () => {
+    expect(shouldRender(true, "1234567890", false)).toBe(false)
+  })
+
+  it("returns true only when all three conditions are met", () => {
+    expect(shouldRender(true, "1234567890", true)).toBe(true)
+  })
+
+  it("AdSlot export is a function (component)", async () => {
+    const mod = await import("@/components/ads/AdSlot")
+    expect(typeof mod.AdSlot).toBe("function")
+  })
+})
+
 // ─── Production-only loading ─────────────────────────────────────────────────
 
 describe("AdSense production-only guard", () => {

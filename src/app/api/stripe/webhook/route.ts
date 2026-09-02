@@ -21,7 +21,16 @@ export const dynamic = "force-dynamic"
  *  - Raw body must be used for signature verification — never re-parse as JSON first.
  *  - Invalid signature → HTTP 400.
  *  - All business logic (granting / revoking Pro) happens in syncStripeSubscription().
- *  - Idempotency enforced via billing_webhook_events (unique stripe_event_id).
+ *
+ * Idempotency (billing_webhook_events):
+ *  - On arrival: INSERT with status='processing'. Conflict (23505) → check existing status.
+ *  - status='processed' → true duplicate → return 200 without re-processing.
+ *  - status='processing'|'failed' → eligible for retry → proceed.
+ *  - On sync success: UPDATE status='processed', processed_at=now().
+ *  - On sync failure: UPDATE status='failed' → return HTTP 500 so Stripe retries.
+ *
+ * This guarantees: an entitlement is NEVER silently lost due to a transient sync error.
+ * Stripe will retry until we return 200.
  *
  * Supported events:
  *  checkout.session.completed
@@ -46,27 +55,17 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: "Invalid signature" }, { status: 400 })
   }
 
-  // 3. Idempotency — skip already-processed events
   const service = createServiceRoleClient()
-  try {
-    const { error: insertError } = await service.from("billing_webhook_events").insert({
-      stripe_event_id: event.id,
-      event_type: event.type as string,
-    })
 
-    if (insertError) {
-      if (insertError.code === "23505") {
-        // Duplicate event — already processed. Return 200 so Stripe stops retrying.
-        return Response.json({ received: true, duplicate: true })
-      }
-      // Unexpected DB error — log but don't block processing
-      console.error("[stripe/webhook] Could not record event:", insertError.code)
-    }
-  } catch {
-    // Non-fatal — continue processing even if idempotency record fails
+  // 3. Idempotency — claim this event for processing.
+  //    Returns false only when the event was already successfully processed.
+  const shouldProcess = await claimEvent(service, event.id, event.type as string)
+  if (!shouldProcess) {
+    return Response.json({ received: true, duplicate: true })
   }
 
-  // 4. Dispatch to subscription sync
+  // 4. Dispatch to subscription sync.
+  //    Sync errors MUST propagate as 5xx so Stripe retries the event.
   try {
     const subscriptionId = extractSubscriptionId(event)
 
@@ -86,12 +85,105 @@ export async function POST(request: Request): Promise<Response> {
       }
     }
   } catch (err) {
-    // Sync errors are logged but return 200 to prevent Stripe from retrying
-    // indefinitely for transient errors. Monitor via server logs.
-    console.error("[stripe/webhook] Sync error for event", event.id, event.type, err)
+    const errorCode = err instanceof Error ? err.message.slice(0, 200) : "sync_error"
+    console.error(
+      "[stripe/webhook] Sync failed for event",
+      event.id,
+      event.type,
+      err instanceof Error ? err.message : err,
+    )
+
+    // Mark as failed — status != 'processed' means Stripe will retry
+    await service
+      .from("billing_webhook_events")
+      .update({
+        status: "failed",
+        last_error_code: errorCode,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("stripe_event_id", event.id)
+
+    // Return 5xx so Stripe retries until sync succeeds
+    return Response.json({ error: "Sync failed, will retry" }, { status: 500 })
   }
 
+  // 5. Mark as successfully processed — future identical events return 200 immediately
+  await service
+    .from("billing_webhook_events")
+    .update({
+      status: "processed",
+      processed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("stripe_event_id", event.id)
+
+  console.log("[stripe/webhook] Processed event", event.id, event.type)
   return Response.json({ received: true })
+}
+
+/**
+ * Attempts to claim a webhook event for processing.
+ *
+ * Returns true when this handler should process the event.
+ * Returns false when the event was already successfully processed (true duplicate).
+ *
+ * Concurrency: two simultaneous deliveries of the same event may both proceed
+ * to sync. This is safe because syncStripeSubscription is fully idempotent.
+ */
+async function claimEvent(
+  service: ReturnType<typeof createServiceRoleClient>,
+  eventId: string,
+  eventType: string,
+): Promise<boolean> {
+  // Insert as 'processing' — will conflict if event already exists
+  const { error: insertError } = await service.from("billing_webhook_events").insert({
+    stripe_event_id: eventId,
+    event_type: eventType,
+    status: "processing",
+    processed_at: null,
+  })
+
+  if (!insertError) {
+    // New event — claimed
+    return true
+  }
+
+  if (insertError.code !== "23505") {
+    // Unexpected DB error — log and proceed with degraded idempotency
+    console.error(
+      "[stripe/webhook] Could not record event (non-conflict error):",
+      insertError.code,
+      eventId,
+    )
+    return true
+  }
+
+  // Unique constraint conflict: event already exists. Check its status.
+  const { data: existing, error: selectError } = await service
+    .from("billing_webhook_events")
+    .select("status")
+    .eq("stripe_event_id", eventId)
+    .maybeSingle()
+
+  if (selectError) {
+    // Cannot determine status — proceed with degraded idempotency
+    console.error(
+      "[stripe/webhook] Could not read event status:",
+      selectError.code,
+      eventId,
+    )
+    return true
+  }
+
+  if (existing?.status === "processed") {
+    // True duplicate — already completed successfully
+    console.log("[stripe/webhook] Duplicate (already processed):", eventId)
+    return false
+  }
+
+  // status is 'processing' or 'failed' — eligible for retry
+  console.log("[stripe/webhook] Retrying event (status:", existing?.status, "):", eventId)
+  return true
 }
 
 /**
@@ -99,8 +191,6 @@ export async function POST(request: Request): Promise<Response> {
  * Returns null for event types that don't carry a subscription.
  */
 function extractSubscriptionId(event: Stripe.Event): string | null {
-  // Use unknown cast first (safer than Record<string, unknown> which conflicts
-  // with some Stripe types that lack an index signature)
   const obj = event.data.object as unknown as { id?: unknown; subscription?: unknown }
 
   switch (event.type) {

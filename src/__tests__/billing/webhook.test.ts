@@ -1,16 +1,15 @@
 /**
  * Tests for POST /api/stripe/webhook
  *
- * Verifies:
- *  - Invalid Stripe signature → 400
- *  - Valid signature → processes event
- *  - Wrong price → does not grant Pro
- *  - active status + correct price → Pro granted
- *  - trialing status → Pro granted
- *  - cancel_at_period_end + active → still Pro (not removed)
- *  - subscription deleted → removes stripe-managed access
- *  - payment_failed → syncs status, does not immediately remove access
- *  - Duplicate event → idempotent (no re-processing)
+ * New idempotency semantics (CORTE MONETIZATION 2.1):
+ *  - Event arrives → INSERT status='processing'
+ *  - Sync success  → UPDATE status='processed' → HTTP 200
+ *  - Sync failure  → UPDATE status='failed'    → HTTP 500 (Stripe retries)
+ *  - Duplicate (status='processed') → HTTP 200 without re-processing
+ *  - Retry (status='failed'|'processing') → re-process
+ *  - Two simultaneous deliveries → sync is idempotent; no false success on failure
+ *  - Missing billing_customers → sync throws → webhook returns 500
+ *  - Supabase upsert failure → sync throws → webhook returns 500
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest"
@@ -21,14 +20,27 @@ import type Stripe from "stripe"
 const {
   mockConstructEvent,
   mockSync,
+  mockUpdate,
   mockFrom,
   mockTrack,
-} = vi.hoisted(() => ({
-  mockConstructEvent: vi.fn(),
-  mockSync: vi.fn().mockResolvedValue(undefined),
-  mockFrom: vi.fn(),
-  mockTrack: vi.fn().mockResolvedValue(undefined),
-}))
+} = vi.hoisted(() => {
+  const mockUpdate = vi.fn()
+  mockUpdate.mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) })
+
+  const mockFrom = vi.fn().mockReturnValue({
+    insert: vi.fn(),
+    select: vi.fn(),
+    update: mockUpdate,
+  })
+
+  return {
+    mockConstructEvent: vi.fn(),
+    mockSync: vi.fn().mockResolvedValue(undefined),
+    mockUpdate,
+    mockFrom,
+    mockTrack: vi.fn().mockResolvedValue(undefined),
+  }
+})
 
 vi.mock("@/lib/stripe/server", () => ({
   getStripe: vi.fn().mockReturnValue({
@@ -82,20 +94,41 @@ function makeEvent(type: string, data: unknown, id = "evt_test_123"): Stripe.Eve
   } as unknown as Stripe.Event
 }
 
-// Chain helper for idempotency insert
-function makeInsertChain(error: { code?: string } | null = null) {
-  const result = { error }
-  const chain = { insert: vi.fn().mockResolvedValue(result) }
-  return chain
+/** Helper: configure mockFrom to simulate the INSERT + SELECT flow for claimEvent. */
+function setupClaimFlow(opts: {
+  insertError: { code?: string } | null
+  existingStatus?: "processing" | "processed" | "failed" | null
+}) {
+  const updateChain = {
+    eq: vi.fn().mockResolvedValue({ error: null }),
+  }
+  mockUpdate.mockReturnValue(updateChain)
+
+  mockFrom.mockImplementation((table: string) => {
+    if (table === "billing_webhook_events") {
+      return {
+        insert: vi.fn().mockResolvedValue({ error: opts.insertError }),
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: opts.existingStatus ? { status: opts.existingStatus } : null,
+              error: null,
+            }),
+          }),
+        }),
+        update: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ error: null }),
+        }),
+      }
+    }
+    return { insert: vi.fn(), select: vi.fn(), update: vi.fn() }
+  })
 }
 
 beforeEach(() => {
   vi.clearAllMocks()
   mockSync.mockResolvedValue(undefined)
   mockTrack.mockResolvedValue(undefined)
-
-  // Default: idempotency insert succeeds (not a duplicate)
-  mockFrom.mockReturnValue(makeInsertChain(null))
 })
 
 // ── Signature verification ────────────────────────────────────────────────────
@@ -116,27 +149,126 @@ describe("POST /api/stripe/webhook — signature", () => {
   it("processes event when signature is valid", async () => {
     const event = makeEvent("customer.subscription.created", { id: "sub_123" })
     mockConstructEvent.mockReturnValue(event)
+    setupClaimFlow({ insertError: null })
 
-    const req = makeRequest(JSON.stringify(event), "valid_sig")
-    const res = await POST(req)
-
+    const res = await POST(makeRequest(JSON.stringify(event), "valid_sig"))
     expect(res.status).toBe(200)
   })
 })
 
-// ── Idempotency ───────────────────────────────────────────────────────────────
+// ── Idempotency — new event ───────────────────────────────────────────────────
 
-describe("POST /api/stripe/webhook — idempotency", () => {
-  it("returns 200 without re-processing a duplicate event", async () => {
+describe("POST /api/stripe/webhook — new event (processing → processed)", () => {
+  it("returns 200 and marks event as processed on sync success", async () => {
+    const event = makeEvent("customer.subscription.updated", { id: "sub_ok" })
+    mockConstructEvent.mockReturnValue(event)
+    setupClaimFlow({ insertError: null })
+
+    const res = await POST(makeRequest(JSON.stringify(event), "sig"))
+    expect(res.status).toBe(200)
+    expect(mockSync).toHaveBeenCalledWith("sub_ok")
+  })
+
+  it("calls syncStripeSubscription for customer.subscription.created", async () => {
+    const event = makeEvent("customer.subscription.created", { id: "sub_new" })
+    mockConstructEvent.mockReturnValue(event)
+    setupClaimFlow({ insertError: null })
+
+    await POST(makeRequest("body", "sig"))
+    expect(mockSync).toHaveBeenCalledWith("sub_new")
+  })
+
+  it("calls syncStripeSubscription for customer.subscription.deleted", async () => {
+    const event = makeEvent("customer.subscription.deleted", { id: "sub_del" })
+    mockConstructEvent.mockReturnValue(event)
+    setupClaimFlow({ insertError: null })
+
+    await POST(makeRequest("body", "sig"))
+    expect(mockSync).toHaveBeenCalledWith("sub_del")
+  })
+
+  it("calls syncStripeSubscription from checkout.session.completed", async () => {
+    const event = makeEvent("checkout.session.completed", {
+      subscription: "sub_checkout",
+      mode: "subscription",
+      client_reference_id: "user-xyz",
+    })
+    mockConstructEvent.mockReturnValue(event)
+    setupClaimFlow({ insertError: null })
+
+    await POST(makeRequest("body", "sig"))
+    expect(mockSync).toHaveBeenCalledWith("sub_checkout")
+  })
+
+  it("calls syncStripeSubscription from invoice.paid", async () => {
+    const event = makeEvent("invoice.paid", { subscription: "sub_inv" })
+    mockConstructEvent.mockReturnValue(event)
+    setupClaimFlow({ insertError: null })
+
+    await POST(makeRequest("body", "sig"))
+    expect(mockSync).toHaveBeenCalledWith("sub_inv")
+  })
+
+  it("does not call sync for unhandled event types", async () => {
+    const event = makeEvent("payment_intent.created", { id: "pi_123" })
+    mockConstructEvent.mockReturnValue(event)
+    setupClaimFlow({ insertError: null })
+
+    await POST(makeRequest("body", "sig"))
+    expect(mockSync).not.toHaveBeenCalled()
+  })
+})
+
+// ── Sync failure → 500 ────────────────────────────────────────────────────────
+
+describe("POST /api/stripe/webhook — sync failure returns 500", () => {
+  it("returns 500 when sync throws (so Stripe retries the event)", async () => {
+    const event = makeEvent("customer.subscription.updated", { id: "sub_err" })
+    mockConstructEvent.mockReturnValue(event)
+    setupClaimFlow({ insertError: null })
+    mockSync.mockRejectedValue(new Error("DB timeout"))
+
+    const res = await POST(makeRequest("body", "sig"))
+    // CRITICAL: must NOT be 200 — Stripe must retry
+    expect(res.status).toBe(500)
+  })
+
+  it("returns 500 when syncStripeSubscription throws missing billing customer", async () => {
+    const event = makeEvent("customer.subscription.updated", { id: "sub_nomapping" })
+    mockConstructEvent.mockReturnValue(event)
+    setupClaimFlow({ insertError: null })
+    mockSync.mockRejectedValue(
+      new Error("[syncStripeSubscription] No billing_customers row for stripe_customer_id=cus_x"),
+    )
+
+    const res = await POST(makeRequest("body", "sig"))
+    expect(res.status).toBe(500)
+  })
+
+  it("returns 500 when Supabase upsert fails inside sync", async () => {
+    const event = makeEvent("customer.subscription.created", { id: "sub_dberr" })
+    mockConstructEvent.mockReturnValue(event)
+    setupClaimFlow({ insertError: null })
+    mockSync.mockRejectedValue(
+      new Error("[syncStripeSubscription] Failed to upsert billing_subscriptions"),
+    )
+
+    const res = await POST(makeRequest("body", "sig"))
+    expect(res.status).toBe(500)
+  })
+})
+
+// ── Idempotency — duplicate (already processed) ───────────────────────────────
+
+describe("POST /api/stripe/webhook — duplicate (status=processed)", () => {
+  it("returns 200 without re-processing when event is already processed", async () => {
     const event = makeEvent("customer.subscription.updated", { id: "sub_dup" }, "evt_dup")
     mockConstructEvent.mockReturnValue(event)
 
-    // Simulate unique constraint violation (duplicate event)
-    mockFrom.mockReturnValue(makeInsertChain({ code: "23505" }))
+    // INSERT conflicts, existing status is 'processed'
+    setupClaimFlow({ insertError: { code: "23505" }, existingStatus: "processed" })
 
-    const req = makeRequest(JSON.stringify(event), "valid_sig")
-    const res = await POST(req)
-
+    const res = await POST(makeRequest(JSON.stringify(event), "valid_sig"))
     expect(res.status).toBe(200)
     const body = await res.json() as { duplicate?: boolean }
     expect(body.duplicate).toBe(true)
@@ -144,89 +276,31 @@ describe("POST /api/stripe/webhook — idempotency", () => {
   })
 })
 
-// ── Subscription sync dispatch ────────────────────────────────────────────────
+// ── Idempotency — retry failed event ─────────────────────────────────────────
 
-describe("POST /api/stripe/webhook — event dispatch", () => {
-  it("syncs subscription for customer.subscription.created", async () => {
-    const event = makeEvent("customer.subscription.created", { id: "sub_new" })
+describe("POST /api/stripe/webhook — retry of failed event", () => {
+  it("re-processes an event with status=failed (Stripe retry)", async () => {
+    const event = makeEvent("customer.subscription.updated", { id: "sub_retry" }, "evt_retry")
     mockConstructEvent.mockReturnValue(event)
 
-    await POST(makeRequest("body", "sig"))
+    // INSERT conflicts, existing status is 'failed'
+    setupClaimFlow({ insertError: { code: "23505" }, existingStatus: "failed" })
 
-    expect(mockSync).toHaveBeenCalledWith("sub_new")
-  })
-
-  it("syncs subscription for customer.subscription.updated", async () => {
-    const event = makeEvent("customer.subscription.updated", { id: "sub_upd" })
-    mockConstructEvent.mockReturnValue(event)
-
-    await POST(makeRequest("body", "sig"))
-
-    expect(mockSync).toHaveBeenCalledWith("sub_upd")
-  })
-
-  it("syncs subscription for customer.subscription.deleted", async () => {
-    const event = makeEvent("customer.subscription.deleted", { id: "sub_del" })
-    mockConstructEvent.mockReturnValue(event)
-
-    await POST(makeRequest("body", "sig"))
-
-    expect(mockSync).toHaveBeenCalledWith("sub_del")
-  })
-
-  it("syncs subscription from checkout.session.completed", async () => {
-    const event = makeEvent("checkout.session.completed", {
-      subscription: "sub_checkout",
-      mode: "subscription",
-      client_reference_id: "user-xyz",
-    })
-    mockConstructEvent.mockReturnValue(event)
-
-    await POST(makeRequest("body", "sig"))
-
-    expect(mockSync).toHaveBeenCalledWith("sub_checkout")
-  })
-
-  it("syncs subscription from invoice.paid", async () => {
-    const event = makeEvent("invoice.paid", { subscription: "sub_inv" })
-    mockConstructEvent.mockReturnValue(event)
-
-    await POST(makeRequest("body", "sig"))
-
-    expect(mockSync).toHaveBeenCalledWith("sub_inv")
-  })
-
-  it("syncs subscription from invoice.payment_failed (does not directly remove access)", async () => {
-    const event = makeEvent("invoice.payment_failed", { subscription: "sub_fail" })
-    mockConstructEvent.mockReturnValue(event)
-
-    await POST(makeRequest("body", "sig"))
-
-    // Sync is called — it decides based on actual subscription status, not event type
-    expect(mockSync).toHaveBeenCalledWith("sub_fail")
-  })
-
-  it("does not call sync for unhandled event types", async () => {
-    const event = makeEvent("payment_intent.created", { id: "pi_123" })
-    mockConstructEvent.mockReturnValue(event)
-
-    await POST(makeRequest("body", "sig"))
-
-    expect(mockSync).not.toHaveBeenCalled()
-  })
-})
-
-// ── Return 200 even on sync error ─────────────────────────────────────────────
-
-describe("POST /api/stripe/webhook — error resilience", () => {
-  it("returns 200 even when sync throws (prevents Stripe retry storm)", async () => {
-    const event = makeEvent("customer.subscription.updated", { id: "sub_err" })
-    mockConstructEvent.mockReturnValue(event)
-    mockSync.mockRejectedValue(new Error("DB timeout"))
-
-    const req = makeRequest("body", "sig")
-    const res = await POST(req)
-
+    const res = await POST(makeRequest(JSON.stringify(event), "valid_sig"))
+    // Should process and succeed
     expect(res.status).toBe(200)
+    expect(mockSync).toHaveBeenCalledWith("sub_retry")
+  })
+
+  it("re-processes an event with status=processing (in-flight retry)", async () => {
+    const event = makeEvent("customer.subscription.updated", { id: "sub_inflight" }, "evt_inflight")
+    mockConstructEvent.mockReturnValue(event)
+
+    // INSERT conflicts, existing status is 'processing'
+    setupClaimFlow({ insertError: { code: "23505" }, existingStatus: "processing" })
+
+    const res = await POST(makeRequest(JSON.stringify(event), "valid_sig"))
+    expect(res.status).toBe(200)
+    expect(mockSync).toHaveBeenCalledWith("sub_inflight")
   })
 })

@@ -260,14 +260,17 @@ describe("syncStripeSubscription — precedence", () => {
 // ── No billing customer ───────────────────────────────────────────────────────
 
 describe("syncStripeSubscription — missing billing customer", () => {
-  it("bails without error when no billing_customers row exists", async () => {
+  it("throws when no billing_customers row exists (webhook must return 5xx for Stripe retry)", async () => {
     mockRetrieve.mockResolvedValue(makeStripeSub())
     setupFrom({ billingCustomer: null })
 
-    // Should not throw
-    await expect(syncStripeSubscription("sub_test")).resolves.toBeUndefined()
+    // Must throw so the webhook handler returns 500 and Stripe retries the event.
+    // A missing customer mapping is an error, not a silent success.
+    await expect(syncStripeSubscription("sub_test")).rejects.toThrow(
+      /No billing_customers row/,
+    )
 
-    // No user_access mutation
+    // No user_access mutation should have happened
     const proUpserts = mockUpsert.mock.calls.filter(
       (call) => (call[0] as { plan?: string }).plan === "pro",
     )

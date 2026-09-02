@@ -859,15 +859,28 @@ export interface Database {
         Row: {
           stripe_event_id: string
           event_type: string
-          processed_at: string
+          processed_at: string | null
+          status: string
+          attempt_count: number
+          last_error_code: string | null
+          updated_at: string
         }
         Insert: {
           stripe_event_id: string
           event_type: string
-          processed_at?: string
+          processed_at?: string | null
+          status?: string
+          attempt_count?: number
+          last_error_code?: string | null
+          updated_at?: string
         }
         Update: {
           event_type?: string
+          processed_at?: string | null
+          status?: string
+          attempt_count?: number
+          last_error_code?: string | null
+          updated_at?: string
         }
         Relationships: []
       }

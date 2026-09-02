@@ -117,3 +117,25 @@ describe("POST /api/billing/portal — response", () => {
     )
   })
 })
+
+// ── DB error handling — fail closed ──────────────────────────────────────────
+
+describe("POST /api/billing/portal — DB error handling", () => {
+  it("returns 500 when billing_customers lookup fails with DB error (not treated as no-customer)", async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: "user-dberr" } } })
+
+    // Simulate a DB error on customer lookup
+    const chain: Record<string, unknown> = {}
+    chain.select = vi.fn().mockReturnValue(chain)
+    chain.eq = vi.fn().mockReturnValue(chain)
+    chain.maybeSingle = vi.fn().mockResolvedValue({
+      data: null,
+      error: { code: "PGRST" },
+    })
+    mockFrom.mockReturnValue(chain)
+
+    const res = await POST()
+    expect(res.status).toBe(500)
+    expect(mockCreatePortal).not.toHaveBeenCalled()
+  })
+})

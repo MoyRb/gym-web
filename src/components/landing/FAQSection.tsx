@@ -28,7 +28,7 @@ const faqs = [
   {
     question: "¿Cuánto cuesta?",
     answer:
-      "El plan básico es completamente gratuito. Incluye generación de rutina con IA, catálogo de ejercicios con guía visual, registro de sesiones y seguimiento de progreso. Planes avanzados estarán disponibles próximamente.",
+      "El plan Free es gratuito para siempre. Incluye rutinas manuales ilimitadas, seguimiento de sesiones y una generación con IA cada 7 días. El plan Pro ($99 MXN/mes) ofrece cuota de IA ampliada y una experiencia sin anuncios.",
   },
   {
     question: "¿Puedo cambiar mi rutina si cambian mis objetivos?",

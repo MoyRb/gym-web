@@ -30,11 +30,20 @@ export async function POST(): Promise<Response> {
 
   // 2. Resolve stripe_customer_id from our mapping — never accept from browser
   const service = createServiceRoleClient()
-  const { data: billingCustomer } = await service
+  const { data: billingCustomer, error: customerLookupError } = await service
     .from("billing_customers")
     .select("stripe_customer_id")
     .eq("user_id", user.id)
     .maybeSingle()
+
+  if (customerLookupError) {
+    // DB error must not be treated as "no customer" — fail safely
+    console.error("[POST /api/billing/portal] DB error looking up billing_customers:", customerLookupError.code)
+    return Response.json(
+      { error: "Error interno. Intenta de nuevo." },
+      { status: 500 },
+    )
+  }
 
   if (!billingCustomer?.stripe_customer_id) {
     return Response.json(

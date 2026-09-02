@@ -48,13 +48,22 @@ export async function POST(): Promise<Response> {
 
   const service = createServiceRoleClient()
 
-  // 3. Block duplicate Stripe subscriptions
-  const { data: existingSub } = await service
+  // 3. Block duplicate Stripe subscriptions — fail closed on DB error
+  const { data: existingSub, error: subLookupError } = await service
     .from("billing_subscriptions")
     .select("stripe_subscription_id, status")
     .eq("user_id", user.id)
     .in("status", ["active", "trialing", "past_due"])
     .maybeSingle()
+
+  if (subLookupError) {
+    // DB error must not be treated as "no subscription" — fail safely
+    console.error("[POST /api/billing/checkout] DB error checking subscription:", subLookupError.code)
+    return Response.json(
+      { error: "Error interno. Intenta de nuevo." },
+      { status: 500 },
+    )
+  }
 
   if (existingSub) {
     return Response.json({ code: "already_subscribed" }, { status: 200 })

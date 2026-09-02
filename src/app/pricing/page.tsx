@@ -32,7 +32,7 @@ const FREE_FEATURES = [
 ]
 
 const FREE_CAVEATS = [
-  "Con anuncios (próximamente)",
+  "Puede incluir publicidad",
 ]
 
 const PRO_FEATURES = [
@@ -42,6 +42,9 @@ const PRO_FEATURES = [
   "Progreso avanzado (próximamente)",
   "Funciones premium de IA (próximamente)",
 ]
+
+// Exported for testing — these are the displayed feature lists and pricing FAQ content.
+export { FREE_FEATURES, PRO_FEATURES, FREE_CAVEATS }
 
 export default async function PricingPage() {
   // Resolve user and plan server-side
@@ -182,7 +185,7 @@ export default async function PricingPage() {
               <div>
                 <p className="text-sm font-semibold mb-1">¿Cuándo se renueva la cuota de IA?</p>
                 <p className="text-sm text-muted-foreground">
-                  La cuota es una ventana deslizante de 7 días desde tu última generación completada, no un reset calendario.
+                  La cuota es una ventana deslizante de 7 días (Free) o 30 días (Pro) desde tu última generación completada, no un reset calendario.
                 </p>
               </div>
               <div>
@@ -198,9 +201,21 @@ export default async function PricingPage() {
                 </p>
               </div>
               <div>
-                <p className="text-sm font-semibold mb-1">¿Cuándo estará disponible Pro?</p>
-                <p className="text-muted-foreground text-sm">
-                  Próximamente. Puedes usar Alpha Trainer gratis desde ahora.
+                <p className="text-sm font-semibold mb-1">¿Puedo cancelar cuando quiera?</p>
+                <p className="text-sm text-muted-foreground">
+                  Sí. Puedes cancelar en cualquier momento desde el portal de suscripción. Mantendrás el acceso Pro hasta el final del período pagado.
+                </p>
+              </div>
+              <div>
+                <p className="text-sm font-semibold mb-1">¿Cómo administro mi suscripción?</p>
+                <p className="text-sm text-muted-foreground">
+                  Desde tu perfil en Alpha Trainer accedes al portal de Stripe donde puedes ver, cambiar o cancelar tu suscripción.
+                </p>
+              </div>
+              <div>
+                <p className="text-sm font-semibold mb-1">¿Pierdo mis datos si vuelvo a Free?</p>
+                <p className="text-sm text-muted-foreground">
+                  No. Tus rutinas, sesiones y progreso se conservan siempre, independientemente del plan.
                 </p>
               </div>
             </div>

@@ -155,6 +155,12 @@ describe("getUserEntitlements — static entitlements", () => {
     expect(e.showAds).toBe(false)
   })
 
+  it("founder: showAds = false", async () => {
+    setupMocks({ accessRow: { plan: "founder", valid_until: null }, genCount: 0 })
+    const e = await getUserEntitlements("user-1")
+    expect(e.showAds).toBe(false)
+  })
+
   it("free: advancedAnalytics = false", async () => {
     setupMocks({ accessRow: null, genCount: 0 })
     const e = await getUserEntitlements("user-1")

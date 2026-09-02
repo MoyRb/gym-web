@@ -32,6 +32,9 @@ function isProActive(status: string): status is ProActiveStatus {
  *
  * The function NEVER downgrades a non-stripe grant when a Stripe subscription
  * is canceled. It ONLY manages rows with source = "stripe".
+ *
+ * Throws on any DB or Stripe error — callers (webhook handler) must let
+ * errors propagate so Stripe retries the event.
  */
 export async function syncStripeSubscription(subscriptionId: string): Promise<void> {
   const stripe = getStripe()
@@ -53,27 +56,30 @@ export async function syncStripeSubscription(subscriptionId: string): Promise<vo
   const cancelAtPeriodEnd = sub.cancel_at_period_end
 
   // 2. Resolve Supabase user from billing_customers
-  const { data: billingCustomer } = await service
+  const { data: billingCustomer, error: customerLookupError } = await service
     .from("billing_customers")
     .select("user_id")
     .eq("stripe_customer_id", stripeCustomerId)
     .maybeSingle()
 
-  if (!billingCustomer) {
-    // No mapping found — cannot sync. Log and bail.
-    console.error(
-      "[syncStripeSubscription] No billing_customers row for stripe_customer_id:",
-      stripeCustomerId,
-      "subscription:",
-      subscriptionId,
+  if (customerLookupError) {
+    throw new Error(
+      `[syncStripeSubscription] DB error looking up billing_customers for stripe_customer_id=${stripeCustomerId}: ${customerLookupError.code}`,
     )
-    return
+  }
+
+  if (!billingCustomer) {
+    // No mapping found — this is an error, not a silent skip.
+    // The webhook must return 5xx so Stripe retries.
+    throw new Error(
+      `[syncStripeSubscription] No billing_customers row for stripe_customer_id=${stripeCustomerId} subscription=${subscriptionId}`,
+    )
   }
 
   const userId = billingCustomer.user_id
 
   // 3. Upsert billing_subscriptions (always mirror Stripe state)
-  await service.from("billing_subscriptions").upsert(
+  const { error: upsertSubError } = await service.from("billing_subscriptions").upsert(
     {
       stripe_subscription_id: subscriptionId,
       user_id: userId,
@@ -87,24 +93,36 @@ export async function syncStripeSubscription(subscriptionId: string): Promise<vo
     { onConflict: "stripe_subscription_id" },
   )
 
+  if (upsertSubError) {
+    throw new Error(
+      `[syncStripeSubscription] Failed to upsert billing_subscriptions for subscription=${subscriptionId}: ${upsertSubError.code}`,
+    )
+  }
+
   // 4. Determine whether this subscription grants Pro
   const isValidPrice = priceId === stripeProPriceId()
   const grantsProAccess = isProActive(status) && isValidPrice
 
   if (grantsProAccess) {
     // Check existing user_access to preserve non-stripe grants
-    const { data: currentAccess } = await service
+    const { data: currentAccess, error: accessReadError } = await service
       .from("user_access")
       .select("source")
       .eq("user_id", userId)
       .maybeSingle()
+
+    if (accessReadError) {
+      throw new Error(
+        `[syncStripeSubscription] DB error reading user_access for user=${userId}: ${accessReadError.code}`,
+      )
+    }
 
     const currentSource = currentAccess?.source ?? null
 
     // Only upsert when there's no row (free) or the current row is also stripe-managed.
     // Never overwrite founder_grant, manual_test, or similar privileged sources.
     if (currentSource === null || currentSource === "stripe" || currentSource === "default") {
-      await service.from("user_access").upsert(
+      const { error: upsertAccessError } = await service.from("user_access").upsert(
         {
           user_id: userId,
           plan: "pro",
@@ -114,20 +132,41 @@ export async function syncStripeSubscription(subscriptionId: string): Promise<vo
         },
         { onConflict: "user_id" },
       )
+
+      if (upsertAccessError) {
+        throw new Error(
+          `[syncStripeSubscription] Failed to upsert user_access (grant pro) for user=${userId}: ${upsertAccessError.code}`,
+        )
+      }
     }
     // Otherwise (founder_grant, manual_test, etc.): leave the existing grant intact.
   } else {
     // Subscription is no longer Pro-granting (canceled, invalid price, etc.)
     // Only revoke if the current user_access was stripe-managed.
-    const { data: currentAccess } = await service
+    const { data: currentAccess, error: accessReadError } = await service
       .from("user_access")
       .select("source")
       .eq("user_id", userId)
       .maybeSingle()
 
+    if (accessReadError) {
+      throw new Error(
+        `[syncStripeSubscription] DB error reading user_access for user=${userId}: ${accessReadError.code}`,
+      )
+    }
+
     if (currentAccess?.source === "stripe") {
       // Delete the row — no row = free (preserves the default-free invariant)
-      await service.from("user_access").delete().eq("user_id", userId)
+      const { error: deleteError } = await service
+        .from("user_access")
+        .delete()
+        .eq("user_id", userId)
+
+      if (deleteError) {
+        throw new Error(
+          `[syncStripeSubscription] Failed to delete user_access (revoke stripe) for user=${userId}: ${deleteError.code}`,
+        )
+      }
     }
     // Non-stripe grants (founder_grant, manual_test, etc.) are left untouched.
   }
