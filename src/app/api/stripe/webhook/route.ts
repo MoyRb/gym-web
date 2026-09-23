@@ -1,6 +1,7 @@
 import { getStripe } from "@/lib/stripe/server"
 import { stripeWebhookSecret } from "@/lib/stripe/env"
 import { syncStripeSubscription } from "@/lib/stripe/sync"
+import { processReferralCommission } from "@/lib/referral/commission"
 import { createServiceRoleClient } from "@/lib/supabase/server"
 import { trackServerEvent } from "@/lib/analytics/server"
 import { EVENTS } from "@/lib/analytics/events"
@@ -20,7 +21,13 @@ export const dynamic = "force-dynamic"
  * Security:
  *  - Raw body must be used for signature verification — never re-parse as JSON first.
  *  - Invalid signature → HTTP 400.
- *  - All business logic (granting / revoking Pro) happens in syncStripeSubscription().
+ *  - All entitlement logic (granting / revoking Pro) happens in syncStripeSubscription().
+ *  - Commission logic (referral_commissions) happens in processReferralCommission().
+ *
+ * Ordering guarantee:
+ *  - Phase 1: Subscription sync (entitlement-critical). Errors → 5xx → Stripe retries.
+ *  - Phase 2: Referral commission (financial, best-effort). Errors are logged but
+ *    NEVER fail the webhook response — entitlement must not depend on commission.
  *
  * Idempotency (billing_webhook_events):
  *  - On arrival: INSERT with status='processing'. Conflict (23505) → check existing status.
@@ -28,9 +35,6 @@ export const dynamic = "force-dynamic"
  *  - status='processing'|'failed' → eligible for retry → proceed.
  *  - On sync success: UPDATE status='processed', processed_at=now().
  *  - On sync failure: UPDATE status='failed' → return HTTP 500 so Stripe retries.
- *
- * This guarantees: an entitlement is NEVER silently lost due to a transient sync error.
- * Stripe will retry until we return 200.
  *
  * Supported events:
  *  checkout.session.completed
@@ -59,13 +63,13 @@ export async function POST(request: Request): Promise<Response> {
 
   // 3. Idempotency — claim this event for processing.
   //    Returns false only when the event was already successfully processed.
-  const shouldProcess = await claimEvent(service, event.id, event.type as string)
+  const shouldProcess = await claimEvent(service, event.id, event.type as string, event.livemode)
   if (!shouldProcess) {
     return Response.json({ received: true, duplicate: true })
   }
 
-  // 4. Dispatch to subscription sync.
-  //    Sync errors MUST propagate as 5xx so Stripe retries the event.
+  // ── Phase 1: Subscription sync (entitlement-critical) ──────────────────────
+  // Errors here MUST propagate as 5xx so Stripe retries until entitlement is correct.
   try {
     const subscriptionId = extractSubscriptionId(event)
 
@@ -93,7 +97,6 @@ export async function POST(request: Request): Promise<Response> {
       err instanceof Error ? err.message : err,
     )
 
-    // Mark as failed — status != 'processed' means Stripe will retry
     await service
       .from("billing_webhook_events")
       .update({
@@ -107,7 +110,27 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: "Sync failed, will retry" }, { status: 500 })
   }
 
-  // 5. Mark as successfully processed — future identical events return 200 immediately
+  // ── Phase 2: Referral commission (best-effort, never fails webhook) ──────────
+  // Commission errors are logged but do NOT affect the entitlement or the 200 response.
+  // The stripe_invoice_id UNIQUE constraint ensures idempotency on retries.
+  if (event.type === "invoice.paid") {
+    const invoice = event.data.object as Stripe.Invoice
+    try {
+      await processReferralCommission(invoice)
+
+      // Track referral converted (non-blocking) if commission was created
+      // Note: processReferralCommission returns void; conversion is inferred by no error
+    } catch (err) {
+      console.error(
+        "[stripe/webhook] Commission processing failed for invoice",
+        (event.data.object as Stripe.Invoice).id,
+        err instanceof Error ? err.message : err,
+      )
+      // Do NOT re-throw — commission failure must not fail the webhook
+    }
+  }
+
+  // ── Mark as successfully processed ────────────────────────────────────────
   await service
     .from("billing_webhook_events")
     .update({
@@ -134,22 +157,21 @@ async function claimEvent(
   service: ReturnType<typeof createServiceRoleClient>,
   eventId: string,
   eventType: string,
+  livemode: boolean,
 ): Promise<boolean> {
-  // Insert as 'processing' — will conflict if event already exists
   const { error: insertError } = await service.from("billing_webhook_events").insert({
     stripe_event_id: eventId,
     event_type: eventType,
+    livemode,
     status: "processing",
     processed_at: null,
   })
 
   if (!insertError) {
-    // New event — claimed
     return true
   }
 
   if (insertError.code !== "23505") {
-    // Unexpected DB error — log and proceed with degraded idempotency
     console.error(
       "[stripe/webhook] Could not record event (non-conflict error):",
       insertError.code,
@@ -166,7 +188,6 @@ async function claimEvent(
     .maybeSingle()
 
   if (selectError) {
-    // Cannot determine status — proceed with degraded idempotency
     console.error(
       "[stripe/webhook] Could not read event status:",
       selectError.code,
@@ -176,12 +197,10 @@ async function claimEvent(
   }
 
   if (existing?.status === "processed") {
-    // True duplicate — already completed successfully
     console.log("[stripe/webhook] Duplicate (already processed):", eventId)
     return false
   }
 
-  // status is 'processing' or 'failed' — eligible for retry
   console.log("[stripe/webhook] Retrying event (status:", existing?.status, "):", eventId)
   return true
 }

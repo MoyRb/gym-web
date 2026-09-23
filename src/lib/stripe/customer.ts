@@ -5,14 +5,16 @@ import { getStripe } from "./server"
 /**
  * Resolves or creates a Stripe Customer for the given Supabase user.
  *
- * - Looks up billing_customers for an existing stripe_customer_id.
+ * Filters by (user_id, livemode) so the same user can have both a Test customer
+ * and a Live customer simultaneously, without cross-contamination.
+ *
+ * - Looks up billing_customers for an existing mapping in the current Stripe mode.
  * - If not found, creates a new Stripe Customer and stores the mapping.
  * - Metadata includes only supabase_user_id — no fitness/health data.
  *
- * Concurrency: two simultaneous checkout requests for the same user may race
- * to create a Stripe Customer. The unique constraint on billing_customers
- * (user_id PRIMARY KEY) is the source of truth. On a 23505 conflict we retry
- * the lookup and return the winner's customer ID.
+ * Concurrency: two simultaneous checkout requests may race to create a Customer.
+ * The UNIQUE(user_id, livemode) constraint resolves the race. On a 23505 conflict
+ * we retry the lookup and return the winner's customer ID.
  *
  * Throws on any DB or Stripe error — callers must propagate this as a 5xx.
  *
@@ -21,19 +23,21 @@ import { getStripe } from "./server"
 export async function getOrCreateStripeCustomer(
   userId: string,
   email: string,
+  livemode: boolean,
 ): Promise<string> {
   const service = createServiceRoleClient()
 
-  // Check for existing mapping
+  // Check for existing mapping in the current Stripe mode
   const { data: existing, error: lookupError } = await service
     .from("billing_customers")
     .select("stripe_customer_id")
     .eq("user_id", userId)
+    .eq("livemode", livemode)
     .maybeSingle()
 
   if (lookupError) {
     throw new Error(
-      `[getOrCreateStripeCustomer] DB error looking up billing_customers for user=${userId}: ${lookupError.code}`,
+      `[getOrCreateStripeCustomer] DB error looking up billing_customers for user=${userId} livemode=${livemode}: ${lookupError.code}`,
     )
   }
 
@@ -41,7 +45,7 @@ export async function getOrCreateStripeCustomer(
     return existing.stripe_customer_id
   }
 
-  // Create a new Stripe Customer
+  // Create a new Stripe Customer in the current mode
   const stripe = getStripe()
   const customer = await stripe.customers.create({
     email,
@@ -54,6 +58,7 @@ export async function getOrCreateStripeCustomer(
   const { error: insertError } = await service.from("billing_customers").insert({
     user_id: userId,
     stripe_customer_id: customer.id,
+    livemode,
   })
 
   if (!insertError) {
@@ -68,11 +73,12 @@ export async function getOrCreateStripeCustomer(
       .from("billing_customers")
       .select("stripe_customer_id")
       .eq("user_id", userId)
+      .eq("livemode", livemode)
       .maybeSingle()
 
     if (retryError || !winner?.stripe_customer_id) {
       throw new Error(
-        `[getOrCreateStripeCustomer] Concurrent creation conflict and retry failed for user=${userId}: ${retryError?.code ?? "no_row"}`,
+        `[getOrCreateStripeCustomer] Concurrent creation conflict and retry failed for user=${userId} livemode=${livemode}: ${retryError?.code ?? "no_row"}`,
       )
     }
 
@@ -80,6 +86,6 @@ export async function getOrCreateStripeCustomer(
   }
 
   throw new Error(
-    `[getOrCreateStripeCustomer] Failed to persist billing_customers for user=${userId}: ${insertError.code}`,
+    `[getOrCreateStripeCustomer] Failed to persist billing_customers for user=${userId} livemode=${livemode}: ${insertError.code}`,
   )
 }

@@ -40,6 +40,8 @@ vi.mock("@/lib/stripe/env", () => ({
   stripeProPriceId: () => "price_PRO_ID",
   stripeSecretKey: () => "sk_test_fake",
   stripeWebhookSecret: () => "whsec_fake",
+  resolveBillingPeriodFromStripePrice: (priceId: string) =>
+    priceId === "price_PRO_ID" ? "monthly" : null,
 }))
 
 vi.mock("@/lib/supabase/server", () => ({

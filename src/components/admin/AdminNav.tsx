@@ -5,12 +5,14 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 
 const NAV_ITEMS = [
-  { href: "/dashboard/admin",           label: "Overview"    },
-  { href: "/dashboard/admin/training",  label: "Training"    },
-  { href: "/dashboard/admin/equipment", label: "Equipment"   },
-  { href: "/dashboard/admin/ai",        label: "AI"          },
-  { href: "/dashboard/admin/users",     label: "Users"       },
-  { href: "/dashboard/admin/product",   label: "Producto"    },
+  { href: "/dashboard/admin",                    label: "Overview"    },
+  { href: "/dashboard/admin/training",           label: "Training"    },
+  { href: "/dashboard/admin/equipment",          label: "Equipment"   },
+  { href: "/dashboard/admin/ai",                 label: "AI"          },
+  { href: "/dashboard/admin/users",              label: "Users"       },
+  { href: "/dashboard/admin/product",            label: "Producto"    },
+  { href: "/dashboard/admin/partners",           label: "Partners"    },
+  { href: "/dashboard/admin/partners/commissions", label: "Comisiones" },
 ]
 
 export function AdminNav() {

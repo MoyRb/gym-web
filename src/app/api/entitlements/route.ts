@@ -8,6 +8,7 @@
 
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server"
 import { getUserEntitlements } from "@/lib/entitlements/get-entitlements"
+import { isLiveMode } from "@/lib/stripe/env"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -24,14 +25,17 @@ export async function GET() {
 
   const [entitlements, stripeSubResult] = await Promise.all([
     getUserEntitlements(user.id),
-    // Check for active Stripe subscription (determines portal button visibility)
+    // Check for active Stripe subscription (filtered by current mode)
     createServiceRoleClient()
       .from("billing_subscriptions")
-      .select("status")
+      .select("status, billing_period, current_period_end")
       .eq("user_id", user.id)
+      .eq("livemode", isLiveMode())
       .in("status", ["active", "trialing", "past_due"])
       .maybeSingle(),
   ])
+
+  const sub = stripeSubResult.data
 
   return Response.json({
     plan: entitlements.plan,
@@ -42,6 +46,10 @@ export async function GET() {
     showAds: entitlements.showAds,
     advancedAnalytics: entitlements.advancedAnalytics,
     // True when user has an active Stripe subscription (shows portal button in UI)
-    hasActiveStripeSubscription: !!stripeSubResult.data,
+    hasActiveStripeSubscription: !!sub,
+    // Billing period of active subscription: "monthly" | "semiannual" | "annual" | null
+    billingPeriod: sub?.billing_period ?? null,
+    // ISO timestamp of next renewal / expiration
+    currentPeriodEnd: sub?.current_period_end ?? null,
   })
 }

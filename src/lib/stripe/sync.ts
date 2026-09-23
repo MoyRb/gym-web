@@ -1,7 +1,7 @@
 import "server-only"
 import { createServiceRoleClient } from "@/lib/supabase/server"
 import { getStripe } from "./server"
-import { stripeProPriceId } from "./env"
+import { resolveBillingPeriodFromStripePrice } from "./env"
 
 /**
  * Statuses that grant Alpha Trainer Pro access.
@@ -24,6 +24,12 @@ function isProActive(status: string): status is ProActiveStatus {
  *
  * This is the SINGLE function that determines whether a Stripe subscription
  * grants or revokes Pro access. All webhook handlers delegate here.
+ *
+ * The billing_period is resolved from the subscription's current price ID.
+ * An unknown price ID NEVER grants Pro access (fail-closed).
+ *
+ * The livemode column on billing_subscriptions comes directly from Stripe's
+ * subscription object (sub.livemode), ensuring Test and Live data never mix.
  *
  * Entitlement precedence:
  *   Founder / manual grant (source ≠ "stripe")
@@ -54,8 +60,10 @@ export async function syncStripeSubscription(subscriptionId: string): Promise<vo
   const rawPeriodEnd = firstItem?.current_period_end ?? null
   const currentPeriodEnd = rawPeriodEnd ? new Date(rawPeriodEnd * 1000) : null
   const cancelAtPeriodEnd = sub.cancel_at_period_end
+  const livemode = sub.livemode
 
-  // 2. Resolve Supabase user from billing_customers
+  // 2. Resolve Supabase user from billing_customers.
+  //    stripe_customer_id is globally unique per Stripe mode, no livemode filter needed.
   const { data: billingCustomer, error: customerLookupError } = await service
     .from("billing_customers")
     .select("user_id")
@@ -69,8 +77,6 @@ export async function syncStripeSubscription(subscriptionId: string): Promise<vo
   }
 
   if (!billingCustomer) {
-    // No mapping found — this is an error, not a silent skip.
-    // The webhook must return 5xx so Stripe retries.
     throw new Error(
       `[syncStripeSubscription] No billing_customers row for stripe_customer_id=${stripeCustomerId} subscription=${subscriptionId}`,
     )
@@ -78,13 +84,19 @@ export async function syncStripeSubscription(subscriptionId: string): Promise<vo
 
   const userId = billingCustomer.user_id
 
-  // 3. Upsert billing_subscriptions (always mirror Stripe state)
+  // 3. Resolve billing period from the subscription's current price.
+  //    null = unknown price → will NOT grant Pro access (fail-closed).
+  const billingPeriod = resolveBillingPeriodFromStripePrice(priceId ?? "")
+
+  // 4. Upsert billing_subscriptions (always mirror Stripe state)
   const { error: upsertSubError } = await service.from("billing_subscriptions").upsert(
     {
       stripe_subscription_id: subscriptionId,
       user_id: userId,
       stripe_customer_id: stripeCustomerId,
       stripe_price_id: priceId ?? "",
+      billing_period: billingPeriod,
+      livemode,
       status,
       current_period_end: currentPeriodEnd?.toISOString() ?? null,
       cancel_at_period_end: cancelAtPeriodEnd,
@@ -99,12 +111,12 @@ export async function syncStripeSubscription(subscriptionId: string): Promise<vo
     )
   }
 
-  // 4. Determine whether this subscription grants Pro
-  const isValidPrice = priceId === stripeProPriceId()
-  const grantsProAccess = isProActive(status) && isValidPrice
+  // 5. Determine whether this subscription grants Pro
+  //    Requires BOTH an active status AND a recognized billing period.
+  const isKnownPrice = billingPeriod !== null
+  const grantsProAccess = isProActive(status) && isKnownPrice
 
   if (grantsProAccess) {
-    // Check existing user_access to preserve non-stripe grants
     const { data: currentAccess, error: accessReadError } = await service
       .from("user_access")
       .select("source")
@@ -119,7 +131,7 @@ export async function syncStripeSubscription(subscriptionId: string): Promise<vo
 
     const currentSource = currentAccess?.source ?? null
 
-    // Only upsert when there's no row (free) or the current row is also stripe-managed.
+    // Only upsert when there's no row (free) or the current row is stripe-managed.
     // Never overwrite founder_grant, manual_test, or similar privileged sources.
     if (currentSource === null || currentSource === "stripe" || currentSource === "default") {
       const { error: upsertAccessError } = await service.from("user_access").upsert(
@@ -139,9 +151,9 @@ export async function syncStripeSubscription(subscriptionId: string): Promise<vo
         )
       }
     }
-    // Otherwise (founder_grant, manual_test, etc.): leave the existing grant intact.
+    // Non-stripe grants (founder_grant, manual_test, etc.) are left untouched.
   } else {
-    // Subscription is no longer Pro-granting (canceled, invalid price, etc.)
+    // Subscription is no longer Pro-granting (canceled, unknown price, etc.)
     // Only revoke if the current user_access was stripe-managed.
     const { data: currentAccess, error: accessReadError } = await service
       .from("user_access")
@@ -156,7 +168,6 @@ export async function syncStripeSubscription(subscriptionId: string): Promise<vo
     }
 
     if (currentAccess?.source === "stripe") {
-      // Delete the row — no row = free (preserves the default-free invariant)
       const { error: deleteError } = await service
         .from("user_access")
         .delete()
@@ -173,8 +184,10 @@ export async function syncStripeSubscription(subscriptionId: string): Promise<vo
 }
 
 /**
- * Cancels all active Stripe subscriptions for the given user.
+ * Cancels all active Stripe subscriptions for the given user in the current Stripe mode.
  * Called BEFORE deleting the auth user to avoid orphaned subscriptions.
+ *
+ * Filters by livemode so Sandbox subscriptions don't block Live deletion and vice versa.
  *
  * Returns { success: true } when all subscriptions were canceled or none existed.
  * Returns { success: false, error } if any cancellation fails — the caller
@@ -183,12 +196,14 @@ export async function syncStripeSubscription(subscriptionId: string): Promise<vo
 export async function cancelStripeSubscriptionsForUser(
   userId: string,
 ): Promise<{ success: true } | { success: false; error: string }> {
+  const { isLiveMode } = await import("./env")
   const service = createServiceRoleClient()
 
   const { data: activeSubs } = await service
     .from("billing_subscriptions")
     .select("stripe_subscription_id")
     .eq("user_id", userId)
+    .eq("livemode", isLiveMode())
     .in("status", [...PRO_ACTIVE_STATUSES])
 
   if (!activeSubs || activeSubs.length === 0) {

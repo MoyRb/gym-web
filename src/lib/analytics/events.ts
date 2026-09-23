@@ -32,11 +32,20 @@ export const EVENTS = {
   MANUAL_PLAN_ACTIVATED: "manual_plan_activated",
 
   // ── Monetization ──────────────────────────────────────────────────────────
-  PRICING_VIEWED:       "pricing_viewed",
-  UPGRADE_CLICKED:      "upgrade_clicked",
-  CHECKOUT_STARTED:     "checkout_started",
-  CHECKOUT_COMPLETED:   "checkout_completed",
-  BILLING_PORTAL_OPENED: "billing_portal_opened",
+  PRICING_VIEWED:          "pricing_viewed",
+  UPGRADE_CLICKED:         "upgrade_clicked",
+  PRICING_PERIOD_SELECTED: "pricing_period_selected",
+  CHECKOUT_STARTED:        "checkout_started",
+  CHECKOUT_COMPLETED:      "checkout_completed",
+  BILLING_PORTAL_OPENED:   "billing_portal_opened",
+
+  // ── Referral program ───────────────────────────────────────────────────────
+  // Metadata: { partner_code } — no user PII
+  REFERRAL_LANDED:           "referral_landed",
+  // Metadata: { billing_period } — no partner details
+  REFERRAL_CHECKOUT_STARTED: "referral_checkout_started",
+  // Metadata: { billing_period } — fired on invoice.paid for first referral purchase
+  REFERRAL_CONVERTED:        "referral_converted",
 
   // ── Account lifecycle ──────────────────────────────────────────────────────
   // Fired server-side before calling auth.admin.deleteUser, while user still exists.

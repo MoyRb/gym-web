@@ -19,7 +19,7 @@ const proTier = [
   "Progreso avanzado (próximamente)",
 ]
 
-// Exported for testing — CTA destinations are product decisions, not UI state.
+// Exported for testing
 export const LANDING_FREE_CTA_HREF = "/register"
 export const LANDING_PRO_CTA_HREF = "/pricing"
 
@@ -75,10 +75,18 @@ export function PricingSection() {
 
             <div className="mb-6">
               <p className="text-sm font-semibold text-muted-foreground uppercase tracking-widest mb-1">Pro</p>
+              {/* Show best-value price to anchor the offer */}
               <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-bold tabular">$99</span>
+                <span className="text-sm text-muted-foreground line-through">$99</span>
+                <span className="text-4xl font-bold tabular">~$74.92</span>
                 <span className="text-sm text-muted-foreground">MXN / mes</span>
               </div>
+              <p className="mt-1 text-xs text-primary font-medium">
+                Pagando anual · desde $99/mes
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                $99/mes · $499 / 6 meses · $899 / año
+              </p>
             </div>
 
             <ul className="mb-8 flex flex-col gap-3 flex-1">
@@ -92,7 +100,7 @@ export function PricingSection() {
 
             <Link href={LANDING_PRO_CTA_HREF}>
               <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
-                Obtener Pro
+                Ver planes
               </Button>
             </Link>
           </div>

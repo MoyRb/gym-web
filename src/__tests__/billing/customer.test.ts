@@ -62,7 +62,7 @@ describe("getOrCreateStripeCustomer — existing mapping", () => {
       makeSelectChain({ stripe_customer_id: "cus_existing_abc" }),
     )
 
-    const result = await getOrCreateStripeCustomer("user-1", "test@example.com")
+    const result = await getOrCreateStripeCustomer("user-1", "test@example.com", false)
 
     expect(result).toBe("cus_existing_abc")
     expect(mockCreateStripeCustomer).not.toHaveBeenCalled()
@@ -84,7 +84,7 @@ describe("getOrCreateStripeCustomer — new customer creation", () => {
       return { insert: vi.fn().mockResolvedValue({ error: null }) }
     })
 
-    const result = await getOrCreateStripeCustomer("user-2", "new@example.com")
+    const result = await getOrCreateStripeCustomer("user-2", "new@example.com", false)
 
     expect(result).toBe("cus_new_123")
     expect(mockCreateStripeCustomer).toHaveBeenCalledWith({
@@ -103,7 +103,7 @@ describe("getOrCreateStripeCustomer — DB lookup error", () => {
     )
 
     await expect(
-      getOrCreateStripeCustomer("user-3", "err@example.com"),
+      getOrCreateStripeCustomer("user-3", "err@example.com", false),
     ).rejects.toThrow(/DB error looking up billing_customers/)
   })
 })
@@ -120,7 +120,7 @@ describe("getOrCreateStripeCustomer — DB insert error", () => {
     })
 
     await expect(
-      getOrCreateStripeCustomer("user-4", "inserterr@example.com"),
+      getOrCreateStripeCustomer("user-4", "inserterr@example.com", false),
     ).rejects.toThrow(/Failed to persist billing_customers/)
   })
 })
@@ -144,7 +144,7 @@ describe("getOrCreateStripeCustomer — concurrent creation race", () => {
       return makeSelectChain({ stripe_customer_id: "cus_winner_456" })
     })
 
-    const result = await getOrCreateStripeCustomer("user-5", "race@example.com")
+    const result = await getOrCreateStripeCustomer("user-5", "race@example.com", false)
     expect(result).toBe("cus_winner_456")
   })
 
@@ -161,7 +161,7 @@ describe("getOrCreateStripeCustomer — concurrent creation race", () => {
     })
 
     await expect(
-      getOrCreateStripeCustomer("user-6", "retry-fail@example.com"),
+      getOrCreateStripeCustomer("user-6", "retry-fail@example.com", false),
     ).rejects.toThrow(/Concurrent creation conflict and retry failed/)
   })
 
@@ -178,7 +178,7 @@ describe("getOrCreateStripeCustomer — concurrent creation race", () => {
     })
 
     await expect(
-      getOrCreateStripeCustomer("user-7", "retry-norow@example.com"),
+      getOrCreateStripeCustomer("user-7", "retry-norow@example.com", false),
     ).rejects.toThrow(/Concurrent creation conflict and retry failed/)
   })
 })

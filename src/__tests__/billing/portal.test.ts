@@ -35,6 +35,7 @@ vi.mock("@/lib/stripe/env", () => ({
   stripeSecretKey: () => "sk_test_fake",
   stripeProPriceId: () => "price_PRO_TEST",
   stripeWebhookSecret: () => "whsec_fake",
+  isLiveMode: () => false,
 }))
 
 vi.mock("@/lib/analytics/server", () => ({

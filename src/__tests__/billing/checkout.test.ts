@@ -53,6 +53,16 @@ vi.mock("@/lib/stripe/env", () => ({
   stripeSecretKey: () => "sk_test_fake",
   stripeProPriceId: () => "price_PRO_TEST_ID",
   stripeWebhookSecret: () => "whsec_fake",
+  isLiveMode: () => false,
+  resolvePriceIdForPeriod: () => "price_PRO_TEST_ID",
+}))
+
+vi.mock("@/lib/referral/cookie", () => ({
+  getReferralCode: vi.fn().mockResolvedValue(null),
+}))
+
+vi.mock("@/lib/referral/partner", () => ({
+  getActivePartnerByCode: vi.fn().mockResolvedValue(null),
 }))
 
 vi.mock("@/lib/analytics/server", () => ({
@@ -76,6 +86,14 @@ function makeChain(result: unknown) {
 
 import { POST } from "@/app/api/billing/checkout/route"
 
+function makeReq(body: Record<string, unknown> = {}): Request {
+  return new Request("http://localhost/api/billing/checkout", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ billingPeriod: "monthly", ...body }),
+  })
+}
+
 const VERIFIED_USER = {
   id: "user-123",
   email: "test@example.com",
@@ -97,7 +115,7 @@ beforeEach(() => {
 describe("POST /api/billing/checkout — auth", () => {
   it("returns 401 when no session", async () => {
     mockGetUser.mockResolvedValue({ data: { user: null } })
-    const res = await POST()
+    const res = await POST(makeReq())
     expect(res.status).toBe(401)
   })
 
@@ -111,7 +129,7 @@ describe("POST /api/billing/checkout — auth", () => {
         },
       },
     })
-    const res = await POST()
+    const res = await POST(makeReq())
     expect(res.status).toBe(403)
     const body = await res.json() as { code?: string }
     expect(body.code).toBe("email_not_verified")
@@ -127,7 +145,7 @@ describe("POST /api/billing/checkout — auth", () => {
         },
       },
     })
-    const res = await POST()
+    const res = await POST(makeReq())
     expect(res.status).toBe(403)
   })
 })
@@ -144,7 +162,7 @@ describe("POST /api/billing/checkout — duplicate protection", () => {
     })
     mockFrom.mockReturnValue(chain)
 
-    const res = await POST()
+    const res = await POST(makeReq())
     expect(res.status).toBe(200)
     const body = await res.json() as { code?: string }
     expect(body.code).toBe("already_subscribed")
@@ -159,7 +177,7 @@ describe("POST /api/billing/checkout — price enforcement", () => {
   it("uses STRIPE_PRO_MONTHLY_PRICE_ID from env, never from request", async () => {
     mockGetUser.mockResolvedValue({ data: { user: VERIFIED_USER } })
 
-    await POST()
+    await POST(makeReq())
 
     expect(mockCreateSession).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -173,7 +191,7 @@ describe("POST /api/billing/checkout — price enforcement", () => {
   it("sets client_reference_id to session userId", async () => {
     mockGetUser.mockResolvedValue({ data: { user: VERIFIED_USER } })
 
-    await POST()
+    await POST(makeReq())
 
     expect(mockCreateSession).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -185,7 +203,7 @@ describe("POST /api/billing/checkout — price enforcement", () => {
   it("includes user_id in metadata (from session, not browser)", async () => {
     mockGetUser.mockResolvedValue({ data: { user: VERIFIED_USER } })
 
-    await POST()
+    await POST(makeReq())
 
     expect(mockCreateSession).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -201,11 +219,12 @@ describe("POST /api/billing/checkout — customer", () => {
   it("calls getOrCreateStripeCustomer with session user data", async () => {
     mockGetUser.mockResolvedValue({ data: { user: VERIFIED_USER } })
 
-    await POST()
+    await POST(makeReq())
 
     expect(mockGetOrCreateCustomer).toHaveBeenCalledWith(
       "user-123",
       "test@example.com",
+      false,
     )
   })
 
@@ -213,7 +232,7 @@ describe("POST /api/billing/checkout — customer", () => {
     mockGetUser.mockResolvedValue({ data: { user: VERIFIED_USER } })
     mockGetOrCreateCustomer.mockResolvedValue("cus_custom_456")
 
-    await POST()
+    await POST(makeReq())
 
     expect(mockCreateSession).toHaveBeenCalledWith(
       expect.objectContaining({ customer: "cus_custom_456" }),
@@ -228,7 +247,7 @@ describe("POST /api/billing/checkout — response", () => {
     mockGetUser.mockResolvedValue({ data: { user: VERIFIED_USER } })
     mockCreateSession.mockResolvedValue({ url: "https://checkout.stripe.com/session/abc" })
 
-    const res = await POST()
+    const res = await POST(makeReq())
     expect(res.status).toBe(200)
     const body = await res.json() as { url?: string }
     expect(body.url).toBe("https://checkout.stripe.com/session/abc")
@@ -249,7 +268,7 @@ describe("POST /api/billing/checkout — DB error handling", () => {
     })
     mockFrom.mockReturnValue(chain)
 
-    const res = await POST()
+    const res = await POST(makeReq())
     expect(res.status).toBe(500)
     // Should NOT have attempted to create a checkout session
     expect(mockCreateSession).not.toHaveBeenCalled()

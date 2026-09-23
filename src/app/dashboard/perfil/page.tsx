@@ -568,6 +568,8 @@ function DangerZoneCard() {
 interface EntitlementsResponse {
   plan: "free" | "pro" | "founder"
   hasActiveStripeSubscription: boolean
+  billingPeriod: "monthly" | "semiannual" | "annual" | null
+  currentPeriodEnd: string | null
 }
 
 function BillingCard() {
@@ -602,6 +604,22 @@ function BillingCard() {
 
   const plan = entitlements?.plan ?? null
   const hasSub = entitlements?.hasActiveStripeSubscription ?? false
+  const billingPeriod = entitlements?.billingPeriod ?? null
+  const currentPeriodEnd = entitlements?.currentPeriodEnd ?? null
+
+  const PERIOD_LABELS: Record<string, string> = {
+    monthly: "Mensual",
+    semiannual: "6 meses",
+    annual: "Anual",
+  }
+
+  const renewalLabel = currentPeriodEnd
+    ? new Date(currentPeriodEnd).toLocaleDateString("es-MX", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : null
 
   return (
     <Card className="mt-6">
@@ -629,9 +647,19 @@ function BillingCard() {
               <div className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-primary" />
                 <span className="text-sm font-semibold text-primary">Alpha Trainer Pro</span>
+                {billingPeriod && (
+                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                    {PERIOD_LABELS[billingPeriod] ?? billingPeriod}
+                  </span>
+                )}
               </div>
             ) : (
               <span className="text-sm font-medium">Free</span>
+            )}
+            {renewalLabel && plan === "pro" && hasSub && (
+              <span className="text-xs text-muted-foreground mt-0.5">
+                Próxima renovación: {renewalLabel}
+              </span>
             )}
           </div>
 

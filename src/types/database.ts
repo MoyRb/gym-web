@@ -805,19 +805,24 @@ export interface Database {
       }
       billing_customers: {
         Row: {
+          id: string
           user_id: string
           stripe_customer_id: string
+          livemode: boolean
           created_at: string
           updated_at: string
         }
         Insert: {
+          id?: string
           user_id: string
           stripe_customer_id: string
+          livemode?: boolean
           created_at?: string
           updated_at?: string
         }
         Update: {
           stripe_customer_id?: string
+          livemode?: boolean
           updated_at?: string
         }
         Relationships: []
@@ -831,6 +836,8 @@ export interface Database {
           status: string
           current_period_end: string | null
           cancel_at_period_end: boolean
+          livemode: boolean
+          billing_period: string | null
           created_at: string
           updated_at: string
         }
@@ -842,6 +849,8 @@ export interface Database {
           status: string
           current_period_end?: string | null
           cancel_at_period_end?: boolean
+          livemode?: boolean
+          billing_period?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -851,6 +860,8 @@ export interface Database {
           status?: string
           current_period_end?: string | null
           cancel_at_period_end?: boolean
+          livemode?: boolean
+          billing_period?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -863,6 +874,7 @@ export interface Database {
           status: string
           attempt_count: number
           last_error_code: string | null
+          livemode: boolean | null
           updated_at: string
         }
         Insert: {
@@ -872,6 +884,7 @@ export interface Database {
           status?: string
           attempt_count?: number
           last_error_code?: string | null
+          livemode?: boolean | null
           updated_at?: string
         }
         Update: {
@@ -880,6 +893,106 @@ export interface Database {
           status?: string
           attempt_count?: number
           last_error_code?: string | null
+          livemode?: boolean | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      gym_partners: {
+        Row: {
+          id: string
+          name: string
+          code: string
+          status: "active" | "inactive"
+          monthly_commission_bps: number
+          long_term_commission_bps: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          code: string
+          status?: "active" | "inactive"
+          monthly_commission_bps?: number
+          long_term_commission_bps?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          name?: string
+          code?: string
+          status?: "active" | "inactive"
+          monthly_commission_bps?: number
+          long_term_commission_bps?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      referral_attributions: {
+        Row: {
+          id: string
+          user_id: string
+          gym_partner_id: string
+          stripe_subscription_id: string
+          billing_period: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          gym_partner_id: string
+          stripe_subscription_id: string
+          billing_period: string
+          created_at?: string
+        }
+        Update: {
+          billing_period?: string
+        }
+        Relationships: []
+      }
+      referral_commissions: {
+        Row: {
+          id: string
+          gym_partner_id: string
+          user_id: string
+          stripe_subscription_id: string
+          stripe_invoice_id: string
+          billing_period: string
+          commission_bps: number
+          commission_basis_amount_cents: number
+          commission_amount_cents: number
+          currency: string
+          status: "pending" | "approved" | "paid" | "void"
+          approved_at: string | null
+          paid_at: string | null
+          voided_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          gym_partner_id: string
+          user_id: string
+          stripe_subscription_id: string
+          stripe_invoice_id: string
+          billing_period: string
+          commission_bps: number
+          commission_basis_amount_cents: number
+          commission_amount_cents: number
+          currency?: string
+          status?: "pending" | "approved" | "paid" | "void"
+          approved_at?: string | null
+          paid_at?: string | null
+          voided_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          status?: "pending" | "approved" | "paid" | "void"
+          approved_at?: string | null
+          paid_at?: string | null
+          voided_at?: string | null
           updated_at?: string
         }
         Relationships: []

@@ -9,13 +9,16 @@ import { createClient, createServiceRoleClient } from "@/lib/supabase/server"
 import { siteConfig } from "@/config/site"
 import { getUserEntitlements } from "@/lib/entitlements/get-entitlements"
 import { accountHasVerifiedRealEmail } from "@/lib/auth/username"
+import { isLiveMode } from "@/lib/stripe/env"
+import { BILLING_PERIOD_DISPLAY } from "@/lib/stripe/billing-periods"
+import type { BillingPeriod } from "@/lib/stripe/billing-periods"
 import { PricingCTA } from "./PricingCTA"
 import type { PricingCTAStatus } from "./PricingCTA"
 
 export const metadata: Metadata = {
   title: "Precios",
   description:
-    "Planes de Alpha Trainer. Rutinas manuales ilimitadas gratis. Generación con IA disponible desde el plan gratuito.",
+    "Alpha Trainer Pro desde $74.92/mes. $99 mensual · $499 cada 6 meses · $899 al año. Rutinas con IA, sin anuncios.",
   alternates: { canonical: `${siteConfig.url}/pricing` },
 }
 
@@ -43,11 +46,15 @@ const PRO_FEATURES = [
   "Funciones premium de IA (próximamente)",
 ]
 
-// Exported for testing — these are the displayed feature lists and pricing FAQ content.
 export { FREE_FEATURES, PRO_FEATURES, FREE_CAVEATS }
 
+const BILLING_PERIOD_LABELS: Record<BillingPeriod, string> = {
+  monthly: "Mensual",
+  semiannual: "6 meses",
+  annual: "12 meses",
+}
+
 export default async function PricingPage() {
-  // Resolve user and plan server-side
   const supabase = await createClient()
   const {
     data: { user },
@@ -59,7 +66,6 @@ export default async function PricingPage() {
     metadata: {},
   })
 
-  // Determine which CTA state to render
   let ctaStatus: PricingCTAStatus = "anonymous"
 
   if (user) {
@@ -74,6 +80,7 @@ export default async function PricingPage() {
           .from("billing_subscriptions")
           .select("status")
           .eq("user_id", user.id)
+          .eq("livemode", isLiveMode())
           .in("status", ["active", "trialing", "past_due"])
           .maybeSingle(),
       ])
@@ -83,7 +90,6 @@ export default async function PricingPage() {
       } else if (entitlements.plan === "pro" && stripeSubResult.data) {
         ctaStatus = "pro_stripe"
       } else if (entitlements.plan === "pro") {
-        // Pro via manual grant (no Stripe) — treat as founder for pricing display
         ctaStatus = "founder"
       } else {
         ctaStatus = "free"
@@ -117,7 +123,7 @@ export default async function PricingPage() {
                 </p>
                 <div className="flex items-baseline gap-1">
                   <span className="text-4xl font-extrabold">$0</span>
-                  <span className="text-muted-foreground text-sm">MXN / mes</span>
+                  <span className="text-muted-foreground text-sm">MXN</span>
                 </div>
               </div>
 
@@ -146,7 +152,7 @@ export default async function PricingPage() {
 
             {/* PRO */}
             <div className="rounded-2xl border-2 border-primary bg-card p-8 flex flex-col gap-6 relative overflow-hidden">
-              {/* Popular badge */}
+              {/* Best value badge */}
               <div className="absolute top-4 right-4">
                 <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary border border-primary/20">
                   <Sparkles className="h-3 w-3" />
@@ -158,14 +164,24 @@ export default async function PricingPage() {
                 <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">
                   Pro
                 </p>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-extrabold">$99</span>
-                  <span className="text-muted-foreground text-sm">MXN / mes</span>
-                </div>
-              </div>
 
-              {/* CTA — dynamic based on user auth/plan state */}
-              <PricingCTA status={ctaStatus} />
+                {/* Period selector tabs */}
+                {ctaStatus === "free" || ctaStatus === "anonymous" || ctaStatus === "unverified" ? (
+                  <PricingCTA status={ctaStatus} />
+                ) : (
+                  <>
+                    {/* Existing Pro/Founder users see their current state */}
+                    <div className="flex items-baseline gap-1 mb-4">
+                      <span className="text-4xl font-extrabold">$99</span>
+                      <span className="text-muted-foreground text-sm">MXN / mes</span>
+                    </div>
+                    <PricingCTA status={ctaStatus} />
+                  </>
+                )}
+
+                {/* Period picker + price display for upgrade paths */}
+                {(ctaStatus === "free" || ctaStatus === "anonymous" || ctaStatus === "unverified") && null}
+              </div>
 
               <div className="flex flex-col gap-2.5">
                 {PRO_FEATURES.map((f) => (
@@ -177,6 +193,49 @@ export default async function PricingPage() {
               </div>
             </div>
           </div>
+
+          {/* Period pricing detail — shown for upgrade-eligible users */}
+          {(ctaStatus === "free" || ctaStatus === "anonymous" || ctaStatus === "unverified") && (
+            <div className="mt-8 rounded-2xl border border-border bg-card overflow-hidden">
+              <div className="grid sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border">
+                {(["monthly", "semiannual", "annual"] as BillingPeriod[]).map((period) => {
+                  const d = BILLING_PERIOD_DISPLAY[period]
+                  return (
+                    <div
+                      key={period}
+                      className={`p-6 flex flex-col gap-3 relative ${d.isBestValue ? "bg-primary/5" : ""}`}
+                    >
+                      {d.isBestValue && (
+                        <span className="absolute top-3 right-3 rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
+                          Mejor valor
+                        </span>
+                      )}
+                      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                        {BILLING_PERIOD_LABELS[period]}
+                      </p>
+                      <div>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-2xl font-extrabold">{d.displayPrice}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">{d.periodLabel}</p>
+                        {d.monthlyEquivalent && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {d.monthlyEquivalent}
+                          </p>
+                        )}
+                        {d.savingsAmount !== null && (
+                          <p className="text-xs text-primary font-medium mt-1">
+                            Ahorras ${d.savingsAmount} MXN
+                          </p>
+                        )}
+                      </div>
+                      <PricingCTA status={ctaStatus} billingPeriod={period} compact />
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           {/* FAQ */}
           <div className="mt-16 border-t border-border pt-12">

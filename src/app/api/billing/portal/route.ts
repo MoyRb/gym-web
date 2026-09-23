@@ -1,6 +1,7 @@
 import "server-only"
 import { createClient, createServiceRoleClient } from "@/lib/supabase/server"
 import { getStripe } from "@/lib/stripe/server"
+import { isLiveMode } from "@/lib/stripe/env"
 import { trackServerEvent } from "@/lib/analytics/server"
 import { EVENTS } from "@/lib/analytics/events"
 import { siteConfig } from "@/config/site"
@@ -14,7 +15,8 @@ export const dynamic = "force-dynamic"
  * Creates a Stripe Customer Portal session for the authenticated user.
  *
  * Security:
- *  - stripe_customer_id is resolved from the server session — never from the browser.
+ *  - stripe_customer_id is resolved from server session + DB — never from the browser.
+ *  - Filters by livemode so Test customers don't open Live portal and vice versa.
  *  - return_url is hardcoded server-side — no open redirect.
  */
 export async function POST(): Promise<Response> {
@@ -28,21 +30,18 @@ export async function POST(): Promise<Response> {
     return Response.json({ error: "No autorizado" }, { status: 401 })
   }
 
-  // 2. Resolve stripe_customer_id from our mapping — never accept from browser
+  // 2. Resolve stripe_customer_id from our mapping — filtered by current Stripe mode
   const service = createServiceRoleClient()
   const { data: billingCustomer, error: customerLookupError } = await service
     .from("billing_customers")
     .select("stripe_customer_id")
     .eq("user_id", user.id)
+    .eq("livemode", isLiveMode())
     .maybeSingle()
 
   if (customerLookupError) {
-    // DB error must not be treated as "no customer" — fail safely
     console.error("[POST /api/billing/portal] DB error looking up billing_customers:", customerLookupError.code)
-    return Response.json(
-      { error: "Error interno. Intenta de nuevo." },
-      { status: 500 },
-    )
+    return Response.json({ error: "Error interno. Intenta de nuevo." }, { status: 500 })
   }
 
   if (!billingCustomer?.stripe_customer_id) {
