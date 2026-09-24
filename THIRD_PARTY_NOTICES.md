@@ -1,6 +1,6 @@
 # Third-Party Notices
 
-This file documents third-party datasets and libraries incorporated into this project.
+This file documents third-party datasets and media referenced or incorporated into this project.
 
 ---
 
@@ -8,8 +8,8 @@ This file documents third-party datasets and libraries incorporated into this pr
 
 - **Repository:** https://github.com/hasaneyldrm/exercises-dataset
 - **Commit pinned:** `7455efae41b330c265e7cd4b78dfa848e7ce5ebd`
-- **License:** MIT
-- **Copyright:** Copyright (c) hasaneyldrm
+- **Dataset/code license:** MIT
+- **Dataset author:** Hasan Emir Yıldırım
 
 ### MIT License
 
@@ -31,32 +31,37 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-### Scope of use in this project
+### Non-media data used by Gym Web
 
-The following **non-media** fields are imported under the MIT license:
+The project imports the exercise dataset metadata and instruction content, including:
 
 - `id`, `name`, `category`, `body_part`, `equipment`, `target`
 - `muscle_group`, `secondary_muscles`
 - `instructions`, `instruction_steps`
 - `created_at`
 
-The following **media assets** are **NOT** part of our product in this release:
+These records are imported into `public.exercises` with the source commit pinned above.
 
-- `images/` directory (JPG files)
-- `videos/` directory (GIF/video files)
-- `image` field (URL referencing Gym Visual assets)
-- `gif_url` field (URL referencing Gym Visual assets)
+### Exercise media
 
-Images and GIFs in `images/` and `videos/` are property of **Gym Visual**
-and are **not** covered by the MIT license of the repository metadata.
-No commercial license has been obtained for these assets.
+The source repository also contains exercise images and GIFs in `images/` and `videos/`.
+Those media assets are identified by the source repository as property of **Gym visual** and
+are not covered by the MIT license that applies to the dataset/code.
 
-Accordingly, this project:
-- Does **not** download or store images or GIFs from the dataset
-- Does **not** display images or GIFs sourced from Gym Visual
-- Does **not** hotlink GitHub or Gym Visual URLs for media purposes
-- Stores `image` and `gif_url` fields as excluded/ignored during import
+Gym Web currently downloads the source GIF files from the pinned commit for technical
+integration and stores them in the private Supabase Storage bucket `exercise-media`.
+Each imported media record is registered in `public.exercise_media` with:
 
-A dedicated `exercise_media` table has been provisioned in the database
-to hold future media assets once a valid commercial license is obtained
-or original media is produced.
+- `license_status = 'pending'`
+- `is_active = false`
+- source attribution preserved
+- SHA-256 checksum recorded
+
+The application does not expose pending media to authenticated end users. The normal
+user-facing media helper only returns media when it is active and has an allowed license
+status (`licensed` or `owned`).
+
+Storage of these files does **not** mean the media is covered by the dataset's MIT license,
+does not transfer copyright, and is not a claim that Gym Web owns the assets. The source
+repository's media notice and Gym visual's applicable terms remain separate from the MIT
+license for the dataset/code.
